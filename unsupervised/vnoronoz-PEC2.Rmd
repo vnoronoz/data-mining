@@ -1,0 +1,794 @@
+---
+title: 'Minería de datos: PEC2 - Métodos no supervisados'
+author: "Autor: **VANESA NAVARRO ORONOZ**"
+date: "Noviembre 2020"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    includes:
+      in_header: 75.584-PEC-header.html
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+******
+# Introducción
+******
+## Presentación
+Esta Prueba de Evaluación Continuada cubre principalmente los módulos 5 y 6 (Métodos de agregación y Algoritmos de asociación) del programa de la asignatura.
+
+## Competencias
+Las competencias que se trabajan en esta prueba son:  
+
+* Uso y aplicación de las TIC en el ámbito académico y profesional.
+* Capacidad para innovar y generar nuevas ideas.
+* Capacidad para evaluar soluciones tecnológicas y elaborar propuestas de proyectos teniendo en cuenta los recursos, las alternativas disponibles y las condiciones de mercado.
+* Conocer las tecnologías de comunicaciones actuales y emergentes así como saberlas aplicar convenientemente para diseñar y desarrollar soluciones basadas en sistemas y tecnologías de la información.
+* Aplicación de las técnicas específicas de ingeniería del software en las diferentes etapas del ciclo de vida de un proyecto.
+* Capacidad para aplicar las técnicas específicas de tratamiento, almacenamiento y administración de datos.
+* Capacidad para proponer y evaluar diferentes alternativas tecnológicas para resolver un problema concreto.
+
+## Objetivos
+En esta PEC trabajaremos la generación, interpretación y evaluación de un modelo de agregación y de un modelo donde generaremos reglas de asociación con el software de practicas. No perderemos de vista las fases de preparación de los datos, calidad del modelo y extracción inicial del conocimiento.
+
+## Descripción de la PEC a realizar
+
+## Recursos Básicos
+**Material docente proporcionado por la UOC.** 
+
+Módulo 5 y 6 del material didáctico.
+
+## Criterios de valoración
+
+**Ejercicios teóricos** 
+
+Todos los ejercicios deben ser presentados de forma razonada y clara, especificando todos y cada uno de los pasos que se hayan llevado a cabo para su resolución. No se aceptará ninguna respuesta que no esté claramente justificada.
+
+**Ejercicios prácticos** 
+
+Para todas las PEC es necesario documentar en cada apartado del ejercicio práctico que se ha hecho y cómo se ha hecho.
+
+## Formato y fecha de entrega
+El formato de entrega es: usernameestudiant-PECn.html/doc/docx/odt/pdf  
+Fecha de Entrega: 18/11/2020  
+Se debe entregar la PEC en el buzón de entregas del aula  
+
+## Nota: Propiedad intelectual 
+
+> A menudo es inevitable, al producir una obra multimedia, hacer uso de recursos creados por terceras personas. Es por lo tanto comprensible hacerlo en el marco de una práctica de los estudios de Informática, Multimedia y Telecomunicación de la UOC, siempre y cuando esto se documente claramente y no suponga plagio en la práctica. 
+
+> Por lo tanto, al presentar una práctica que haga uso de recursos ajenos, se debe presentar junto con ella un documento en qué se detallen todos ellos, especificando el nombre de cada recurso, su autor, el lugar dónde se obtuvo y su estatus legal: si la obra está protegida por el copyright o se acoge a alguna otra licencia de uso (Creative Commons, licencia GNU, GPL ...). El estudiante deberá asegurarse de que la licencia no impide específicamente su uso en el marco de la práctica. En caso de no encontrar la información correspondiente tendrá que asumir que la obra está protegida por copyright. 
+
+> Deberéis, además, adjuntar los ficheros originales cuando las obras utilizadas sean digitales, y su código fuente si corresponde.  
+
+******
+# Ejemplo 1.1
+## Métodos de agregación con datos autogenerados
+******
+En este ejemplo vamos a generar un conjunto de muestras aleatorias para posteriormente usar el algoritmo kmeans para agruparlas. Se crearán las muestras alrededor de dos puntos concretos. Por lo tanto, lo lógico será agrupar en dos clústers. Puesto que inicialmente, en un problema real, no se conoce cual es el número más idóneo de clústers k, vamos a probar primero con dos (el valor óptimo) y posteriormente con 4 y 8 clústers. Para evaluar la calidad de cada proceso de agrupación vamos a usar la silueta media. La silueta de cada muestra evalúa como de bien o mal está clasificada la muestra en el clúster al que ha sido asignada. Para ello se usa una fórmula que tiene en cuenta la distancia a las muestras de su clúster y la distancia a las muestras del clúster vecino más cercano. 
+
+A la hora de probar el código que se muestra, es importante tener en cuenta que las muestras se generan de forma aleatoria y también que el algoritmo kmeans tiene una inicialización aleatoria. Por lo tanto, en cada ejecución se obtendrá unos resultados ligeramente diferentes.
+
+Lo primero que hacemos es cargar la librería cluster que contiene las funciones que se necesitan
+
+```{r message= FALSE, warning=FALSE}
+library(cluster)
+```
+Generamos las muestras de forma aleatoria tomando como centro los puntos [0,0] y [5,5].
+```{r message= FALSE, warning=FALSE}
+n <- 150 # número de muestras
+p <- 2   # dimensión
+
+sigma <- 1 # varianza de la distribución
+mean1 <- 0 # centro del primer grupo
+mean2 <- 5 # centro del segundo grupo
+
+n1 <- round(n/2) # número de muestras del primer grupo
+n2 <- round(n/2) # número de muestras del segundo grupo
+
+x1 <- matrix(rnorm(n1*p,mean=mean1,sd=sigma),n1,p)
+x2 <- matrix(rnorm(n2*p,mean=mean2,sd=sigma),n2,p)
+```
+
+Juntamos todas las muestras generadas y las mostramos en una gráfica
+```{r message= FALSE, warning=FALSE}
+x  <- rbind(x1,x2)
+plot (x)
+```
+Como se puede comprobar las muestras están claramente separadas en dos grupos. Si se quiere complicar el problema se puede modificar los puntos centrales (mean1 y mean2) haciendo que estén más próximos y/o ampliar la varianza (sigma) para que las muestras estén más dispersas.
+
+A continuación vamos a aplicar el algoritmo kmeans con 2, 4 y 8 clústers
+```{r message= FALSE, warning=FALSE}
+fit2       <- kmeans(x, 2)
+y_cluster2 <- fit2$cluster
+
+fit4       <- kmeans(x, 4)
+y_cluster4 <- fit4$cluster
+
+fit8       <- kmeans(x, 8)
+y_cluster8 <- fit8$cluster
+```
+Las variables y_cluster2, y_cluster4 e y_cluster8 contienen para cada muestra el identificador del clúster a las que han sido asignadas. Por ejemplo, en el caso de los k=2 las muestras se han asignado al clúster 1 o al 2
+
+```{r message= FALSE, warning=FALSE}
+y_cluster2
+```
+
+Para visualizar los clústers podemos usar la función clusplot. Vemos la agrupación con 2 clústers
+```{r message= FALSE, warning=FALSE}
+clusplot(x, fit2$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+con 4
+```{r message= FALSE, warning=FALSE}
+clusplot(x, fit4$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+
+y con 8
+```{r message= FALSE, warning=FALSE}
+clusplot(x, fit8$cluster, color=TRUE, shade=TRUE, labels=2, lines=0)
+```
+También podemos visualizar el resultado del proceso de agrupamiento con el siguiente código para el caso de 2 clústers
+```{r message= FALSE, warning=FALSE}
+plot(x[y_cluster2==1,],col='blue', xlim=c(min(x[,1]), max(x[,1])), ylim=c(min(x[,2]), max(x[,2])))
+points(x[y_cluster2==2,],col='red')
+```
+
+para 4
+```{r message= FALSE, warning=FALSE}
+
+plot(x[y_cluster4==1,],col='blue', xlim=c(min(x[,1]), max(x[,1])), ylim=c(min(x[,2]), max(x[,2])))
+points(x[y_cluster4==2,],col='red')
+points(x[y_cluster4==3,],col='green')
+points(x[y_cluster4==4,],col='black')
+```
+
+y para 8
+```{r message= FALSE, warning=FALSE}
+plot(x[y_cluster8==1,],col='blue', xlim=c(min(x[,1]), max(x[,1])), ylim=c(min(x[,2]), max(x[,2])))
+points(x[y_cluster8==2,],col='red')
+points(x[y_cluster8==3,],col='green')
+points(x[y_cluster8==4,],col='black')
+points(x[y_cluster8==5,],col='yellow')
+points(x[y_cluster8==6,],col='purple')
+points(x[y_cluster8==7,],col='cyan')
+points(x[y_cluster8==8,],col='orange')
+```
+
+Ahora vamos a evaluar la calidad del proceso de agregación. Para ello usaremos la función silhouette que calcula la silueta de cada muestra
+
+```{r message= FALSE, warning=FALSE}
+d  <- daisy(x) 
+sk2 <- silhouette(y_cluster2, d)
+sk4 <- silhouette(y_cluster4, d)
+sk8 <- silhouette(y_cluster8, d)
+```
+
+La función silhouette devuelve para cada muestra, el clúster dónde ha sido asignado, el clúster vecino y el valor de la silueta. Por lo tanto, calculando la media de la tercera columna podemos obtener una estimación de la calidad del agrupamiento
+
+```{r message= FALSE, warning=FALSE}
+mean(sk2[,3])
+mean(sk4[,3])
+mean(sk8[,3])
+```
+
+Como se puede comprobar, agrupar con dos clúster es mejor que en 4 o en 8, lo cual es lógico teniendo en cuenta como se han generado los datos.
+
+******
+# Ejemplo 1.2
+## Métodos de agregación con datos reales 
+******
+
+A continuación vamos a ver otro ejemplo de cómo se usan los modelos de agregación. Para ello usaremos el fichero iris.csv. Esta base de datos se encuentra descrita en https://archive.ics.uci.edu/ml/datasets/iris. Este dataset está previamente trabajado para que los datos estén limpios y sin errores. De no ser así antes de nada deberíamos buscar errores, valores nulos u outlayers. Deberíamos mirar de discretizar o eliminar columnas. Incluso realizar este último paso varias veces para comprobar los diferentes resultados y elegir el que mejor performance nos dé.
+De todas formas vamos a visualizar la estructura y resumen de los datos
+```{r message= FALSE, warning=FALSE}
+iris_data<-read.csv("http://archive.ics.uci.edu/ml/machine-learning-databases/iris/iris.data", header=T, sep=",")
+attach(iris_data)
+colnames(iris_data) <- c("sepalLength", "sepalWidth", "petalLength", "petalWidth", "class")
+summary(iris_data)
+
+```
+
+Como se puede comprobar, esta base de datos está pensada para problemas de clasificación supervisada que pretende clasificar cada tipo de flor en uno de las tres clases existentes (Iris-setosa, Iris-versicolor o Iris-virginica). Como en este ejemplo vamos a usar un método no supervisado, transformaremos el problema supervisado original en uno no supervisado. Para conseguirlo no usaremos la columna class, que es la variable que se quiere predecir. Por lo tanto, intentaremos encontrar agrupaciones usando únicamente los cuatro atributos que caracterizan a cada flor.
+ 
+Cargamos  los datos y nos quedamos únicamente con las cuatro columnas que definen a cada flor
+```{r message= FALSE, warning=FALSE}
+x <- iris_data[,1:4]
+```
+
+Como inicialmente no conocemos el número óptimo de clústers, probamos con varios valores
+```{r message= FALSE, warning=FALSE}
+d <- daisy(x) 
+resultados <- rep(0, 10)
+for (i in c(2,3,4,5,6,7,8,9,10))
+{
+  fit           <- kmeans(x, i)
+  y_cluster     <- fit$cluster
+  sk            <- silhouette(y_cluster, d)
+  resultados[i] <- mean(sk[,3])
+}
+
+```
+
+
+Mostramos en un gráfica los valores de las siluetas media de cada prueba para comprobar que número de clústers es el mejor
+```{r message= FALSE, warning=FALSE}
+plot(2:10,resultados[2:10],type="o",col="blue",pch=0,xlab="Número de clusters",ylab="Silueta")
+```
+
+Aunque el valor esperado es k=3, dado que el conjunto original tiene 3 clases, el mejor valor que se obtiene es k=2.
+
+Otro forma de evaluar cual es el mejor número de clústers es considerar el mejor modelo, aquel que ofrece la menor suma de los cuadrados de las distancias de los puntos de cada grupo con respecto a su centro (withinss), con la mayor separación entre centros de grupos (betweenss). Como se puede comprobar es una idea conceptualmente similar a la silueta. Una manera común de hacer la selección del número de clústers consiste en aplicar el método elbow (codo), que no es más que la selección del número de clústers en base a la inspección de la gráfica que se obtiene al iterar con el mismo conjunto de datos para distintos valores del número de clústers. Se seleccionará el valor que se encuentra en el "codo" de la curva
+
+```{r message= FALSE, warning=FALSE}
+resultados <- rep(0, 10)
+for (i in c(2,3,4,5,6,7,8,9,10))
+{
+  fit           <- kmeans(x, i)
+  resultados[i] <- fit$tot.withinss
+}
+plot(2:10,resultados[2:10],type="o",col="blue",pch=0,xlab="Número de clusters",ylab="tot.tot.withinss")
+```
+
+En este caso el número óptimo de clústers son 4 que es cuando la curva comienza a estabilizarse.
+
+También se puede usar la función kmeansruns del paquete fpc que ejecuta el algoritmo kmeans con un conjunto de valores, para después seleccionar el valor del número de clústers que mejor funcione de acuerdo a dos criterios: la silueta media ("asw") y Calinski-Harabasz ("ch").
+
+```{r message= FALSE, warning=FALSE}
+library(fpc)
+fit_ch  <- kmeansruns(x, krange = 1:10, criterion = "ch") 
+fit_asw <- kmeansruns(x, krange = 1:10, criterion = "asw") 
+```
+
+Podemos comprobar el valor con el que se ha obtenido el mejor resultado y también mostrar el resultado obtenido para todos los valores de k usando ambos criterios
+
+```{r message= FALSE, warning=FALSE}
+fit_ch$bestk
+fit_asw$bestk
+
+plot(1:10,fit_ch$crit,type="o",col="blue",pch=0,xlab="Número de clústers",ylab="Criterio Calinski-Harabasz")
+plot(1:10,fit_asw$crit,type="o",col="blue",pch=0,xlab="Número de clústers",ylab="Criterio silueta media")
+
+```
+
+Los resultados son muy parecidos a los que hemos obtenido anteriormente. Con el criterio de la silueta media se obtienen dos clústers y con el Calinski-Harabasz se obtienen 3.
+
+Como se ha comprobado, conocer el número óptimo de clústers no es un problema fácil. Tampoco lo es la evaluación de los modelos de agregación.
+
+Como en el caso que estudiamos sabemos que los datos pueden ser agrupados en 3 clases, vamos a ver como se ha comportado el kmeans en el caso de pedirle 3 clústers. Para eso comparamos visualmente los campos dos a dos, con el valor real que sabemos está almacenado en el campo "class" del dataset original.
+```{r message= FALSE, warning=FALSE}
+iris3clusters <- kmeans(x, 3)
+
+# sepalLength y sepalWidth
+plot(x[c(1,2)], col=iris3clusters$cluster)
+plot(x[c(1,2)], col=as.factor(iris_data$class))
+```
+
+Podemos observar que el sépalo no es un buen indicador para diferenciar a las tres subespecies, no con la metodología de kmeans, dado que dos de las subespecies están demasiado mezcladas para poder diferenciar nada.
+```{r message= FALSE, warning=FALSE}
+# petalLength y petalWidth
+plot(x[c(3,4)], col=iris3clusters$cluster)
+plot(x[c(3,4)], col=as.factor(iris_data$class))
+```
+
+ El tamaño del pétalo sin embargo, parece hacer un mucho mejor trabajo para dividir las tres clases de flores. El grupo formado por los puntos negros que ha encontrado el algoritmo coincide con los de la flor Iris Setosa. Los otros dos grupos sin embargo se entremezclan algo más, y hay ciertos puntos que se clasifican como Versicolor cuando en realidad son Virginica.
+ 
+ Una buena técnica que ayuda a entender los grupos que se han formado, es mirar de darles un nombre. Cómo por ejemplo:
+ 
+ - Grupo 1: Sólo setosas
+ - Grupo 2: Principalmente versicolor
+ - Grupo 3: Virgínicas o iris pétalo grande
+ 
+ Esto nos ayuda a entender cómo están formados los grupos y a referirnos a ellos en análisis posteriores.
+ 
+Una última cosa que nos queda por hacer, es saber cuales de las muestras iniciales han sido mal clasificadas y cómo. Eso lo conseguimos con el siguiente comando.
+
+```{r message= FALSE, warning=FALSE}
+table(iris3clusters$cluster,iris_data$class)
+```
+
+Y así, podemos sacar un porcentaje de precisión del modelo
+```{r message= FALSE, warning=FALSE}
+100*(36 + 48 + 49)/(133+(2+14))
+```
+
+## Ejercicio 1.1
+Tomando como punto de partida los ejemplos mostrados, realizar un estudio similar con otro conjunto de datos. Pueden ser datos reales de vuestro ámbito laboral o de algún repositorio de datos de Internet. Mirad por ejemplo: http://www.ics.uci.edu/~mlearn/MLSummary.html.
+
+A la hora de elegir la base de datos ten en cuenta que sea apropiada para problemas no supervisados y que los atributos sean también apropiados para su uso con el algoritmo kmeans.
+
+No hay que olvidarse de la fase de preparación y análisis de datos.
+
+### Respuesta 1.1:
+
+Desde la página del [repositorio de Machine Learning de la UCI](https://archive.ics.uci.edu/ml/index.php) se ha escogido trabajar con el Dataset Wine https://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data. Después de Iris y Adult es el más popular del repositorio. Se ha seleccionado este conjunto de datos porque está muy bien estructurado para tareas de clasificación y existe multitud de bibliografía que lo utiliza en sus análisis y puede ser consultada como guía para los que damos nuestros primeros pasos en estas tareas.
+
+El propósito del clustering es identificar patrones en los datos y crear grupos de acuerdo con esos patrones. En este ejercicio, vamos a aplicar un modelo de agregación usando el algoritmo K-means. La intención es encontrar grupos de vinos en función de su composición química.
+
+Importamos el dataset:
+
+```{r message= FALSE, warning=FALSE}
+library(ggplot2)
+library(dplyr) 
+library(fpc)
+library(cluster) 
+library(factoextra)  
+library(useful)
+library(scales)
+library(tidyverse)
+library(gridExtra)
+```
+
+```{r message= FALSE, warning=FALSE}
+# Se lee la información del dataset desde la web directamente y se nombran sus columnas
+datos<-read.csv("http://archive.ics.uci.edu/ml/machine-learning-databases/wine/wine.data", header=FALSE, sep=",",  col.names=c('Id_Clase', 'Alcohol','Acido_malico', 'Ceniza', 'Alcalinidad_Ceniza', 'Magnesio', 'Fenoles_Totales', 'Flavonoides', 'Fenoles_No_Flavonoides','Proantocianinas', 'Intensidad_Color','Tono', 'OD280.OD315_Vinos_Diluidos', 'Prolina'))
+
+# Visualizamos el contenido de los datos descargados
+head (datos)
+```
+
+Examinamos la estructura y variables del dataset y posteriormente revisamos si posee valores nulos.
+
+```{r message= FALSE, warning=FALSE}
+# Revisamos la estructura
+str(datos)
+```
+
+```{r message= FALSE, warning=FALSE}
+# Resumen de las variables
+summary(datos)
+```
+
+El conjunto de datos está formado por 178 observaciones y 14 variables. Posee información sobre la clase y origen del vino y una serie de mediciones de sus componentes químicos.
+
+VARIABLE      | TIPO     
+-----------   | -------- 
+Id_Clase          | integer  
+Alcohol         | numérico  
+Acido_malico       | numérico  
+Ceniza           | numérico  
+Alcalinidad_Ceniza  |numérico  
+Magnesio  | integer  
+Fenoles_Totales  |numérico 
+Flavonoides |numérico  
+Fenoles_No_Flavonoides  |numérico  
+Proantocianinas |numérico  
+Intensidad_Color |numérico  
+Tono      |numérico  
+OD280.OD315_Vinos_Diluidos    |numérico  
+Prolina  | integer 
+
+```{r message= FALSE, warning=FALSE}
+# Estadísticas de valores vacíos
+colSums(is.na(datos))
+```
+No tenemos registros vacíos en este dataset.
+
+Vamos a preparar nuestros datos para la aplicación del algoritmo k-means.
+
+A partir del resumen estadístico de los datos, hemos visto que hay variables que están en una escala diferente, hay valores cuyo máximo no llega a 1 y otros cuyo máximo pasa de 1600. Cuando sucede ésto, es recomendable escalar o estandarizar los datos o normalizarlos. En este caso, usaremos la función `scale ()` para obtener resultados adecuados y comparables.
+
+En este paso también eliminaremos la primera columna pues es la clasificación de los vinos y es lo que esperamos obtener. De esta forma, al final del análisis compararemos los resultados obtenidos por la aplicación del algoritmo con este atributo Id_Clase.
+
+```{r message= FALSE, warning=FALSE}
+# Quitamos la primera columna y estandarizamos con scale()
+# Guardamos en variable input
+input<-scale(datos[-1])
+# Resumen estadístico de los datos estandarizados
+summary(input)
+```
+Si se compara este resumen con el anterior, se pueden distinguir los cambios de valores en las variables. Ahora todas están en el mismo orden.
+
+**Determinación de clústeres óptimos**
+
+Para determinar y visualizar el número óptimo de clústeres utilizando diferentes métodos, se ha encontrado de mucha utilidad la función `fviz_nbclust()` del paquete 'factoextra'.
+
+En ella se pueden especificar como parámetros los métodos de evaluación y el número de clústeres. Los gráficos resultantes te muestran claramente el número de clúster óptimo para aplicar al algoritmo.
+
+Los métodos de evaluación son los siguientes:
+
+* **Elbow** 
+* **Silhouette** 
+* **Gap Statistic** 
+
+```{r message= FALSE, warning=FALSE}
+set.seed(123)
+# Gráficos de los métodos de clustering
+fviz_nbclust(input, FUN = hcut, method = "wss") + ggtitle("(A) Método Elbow/Codo")
+fviz_nbclust(input, FUN = hcut, method = "silhouette", k.max = 10) + ggtitle("(B) Método Silhouette/Silueta")
+fviz_nbclust(input, FUN = hcut, method = "gap_stat", k.max = 10) + ggtitle("(C) Gap statistic")
+```
+
+El método elbow se llama de esa forma porque se selecciona el valor que se encuentra en el “codo” de la curva, como claramente ocurre en el ejemplo. Si observamos los tres métodos, en todos el clúster óptimo es 3, que es lo que veníamos a confirmar.
+
+Otra forma de evaluación es mediante la función `kmeansruns` del paquete 'fpc' que ejecuta el algoritmo kmeans con un conjunto de valores, para después seleccionar el valor del número de clústers que mejor funcione de acuerdo a dos criterios: la silueta media (“asw”) y Calinski-Harabasz (“ch”).
+
+Veamos qué resultados obtenemos para nuestro conjunto de datos:
+
+```{r message= FALSE, warning=FALSE}
+fit_ch  <- kmeansruns(input, krange = 1:10, criterion = "ch") 
+fit_asw <- kmeansruns(input, krange = 1:10, criterion = "asw") 
+fit_ch$bestk
+fit_asw$bestk
+```
+En ambos casos obtenemos el resultado de k=3 para los dos criterios. Veamos sus gráficas:
+
+```{r message= FALSE, warning=FALSE}
+plot(1:10,fit_ch$crit,type="o",col="red",pch=20,xlab="Número de clústers",ylab="Criterio Calinski-Harabasz", main = "Método Calinski-Harabasz")
+```
+
+```{r message= FALSE, warning=FALSE}
+plot(1:10,fit_asw$crit,type="o",col="red",pch=20,xlab="Número de clústers",ylab="Criterio silueta media", main = "Método Silueta media")
+```
+
+En ambos, vemos que el resultado es k=3. De esta forma confirmamos los resultados obtenidos anteriormente.
+
+**Aplicación del algortimo K-Means**
+
+El método de agregación que vamos a utilizar es el algoritmo K-means. El algoritmo `kmeans()` acepta como mínimo dos parámetros como entrada:
+
+- Los datos
+- Un valor K, que es el número de grupos que queremos crear.
+
+Conceptualmente, k-means se comportan de la siguiente manera:
+
+1- Elige K centroides al azar
+
+2- Hace coincidir cada punto de los datos con el centroide más cercano en un espacio n-dimensional donde n es el número de características utilizadas en el agrupamiento (aqui las 13 variables). Después de este paso, cada punto pertenece a un grupo.
+
+3- Ahora, recalcula los centroides como el punto medio (vector) de todos los demás puntos del grupo.
+
+4- Sigue repitiendo los pasos 2 y 3 hasta que los grupos se estabilizan, es decir, cuando no se reasignan puntos a otro centroide o cuando alcanza el número máximo de iteraciones (la biblioteca de estadísticas usa 10 por defecto).
+
+```{r message= FALSE, warning=FALSE}
+# Aplicamos kmeans con k=3
+datos3clusters <- kmeans(input, 3)
+plot(datos3clusters, data=input)
+```
+
+Para comparar nuestra clasificación con la clasificación real del dataset ejecutamos el siguiente comando:
+
+```{r message= FALSE, warning=FALSE}
+table(datos3clusters$cluster,datos$Id_Clase)
+```
+En esta tabla vemos que la asignación de clústeres solo tiene seis valores que no están en su grupo.
+
+Cálculo del porcentaje de precisión del modelo:
+```{r message= FALSE, warning=FALSE}
+# Porcentaje de acierto
+100*(59 + 65 + 48)/(172+(3+3))
+```
+
+## Ejercicio 1.2
+Buscar información sobre otros métodos de agregación diferentes al Kmeans. Partiendo del ejercicio anterior probar el funcionamiento de al menos 2 métodos diferentes y comparar los resultados obtenidos.
+
+### Respuesta 1.2
+
+**PAM (Partitioning Around Medoids)**
+
+El método de agrupamiento de k-medoids más común es el algoritmo PAM (Partitioning Around Medoids). Elige puntos de datos como centros (medoides) de los grupos. Generalmente es más robusto a valores atípicos que k-means, ya que usa mediana en lugar de media. K-medoids es una alternativa sólida al agrupamiento de k-means.
+
+Vamos a aplicar el algoritmo a nuestro conjunto de datos y comparar con la clasificación original:
+
+```{r message= FALSE, warning=FALSE}
+pam3clusters <- pam(input, 3)
+plot(pam3clusters, data=input)
+```
+
+Comparamos la clasificación realizada con la clasificación real del dataset ejecutando el siguiente comando:
+```{r message= FALSE, warning=FALSE}
+table(pam3clusters$cluster,datos$Id_Clase)
+```
+Y obtenemos el porcentaje de precisión del modelo
+```{r message= FALSE, warning=FALSE}
+# Porcentaje de acierto
+100*(59 + 55 + 48)/(162+(15+1))
+```
+
+**CLARA (Clustering for LARge Applications)**
+
+En lugar de encontrar medoids para todo el conjunto de datos, CLARA considera una pequeña muestra de los datos con tamaño fijo (tamaño samps) y aplica el algoritmo PAM para generar un conjunto óptimo de medoids para la muestra. La calidad de los medoids resultantes se mide por la disimilitud promedio entre cada objeto en todo el conjunto de datos y el medoide de su grupo, definido como la función de costo.
+
+CLARA repite los procesos de muestreo y agrupamiento un número predeterminado de veces para minimizar el sesgo de muestreo. Los resultados finales de agrupamiento corresponden al conjunto de medoids con el costo mínimo. El algoritmo CLARA se resume en la siguiente sección.
+
+Vamos a aplicar el algoritmo a nuestro conjunto de datos y comparar con la clasificación original:
+
+```{r message= FALSE, warning=FALSE}
+clara3clusters <- clara(input, 3)
+plot(clara3clusters, data=input)
+```
+
+Comparamos la clasificación realizada con la clasificación real del dataset ejecutando el siguiente comando:
+```{r message= FALSE, warning=FALSE}
+table(clara3clusters$cluster,datos$Id_Clase)
+```
+
+Y obtenemos el porcentaje de precisión del modelo
+```{r message= FALSE, warning=FALSE}
+# Porcentaje de acierto
+100*(59 + 60 + 48)/(167+(10+1))
+```
+
+
+***
+### Conclusiones Ejercicios 1.1 y 1.2
+***
+* El agrupamiento de K-means es un algoritmo simple que se utiliza para dividir n observaciones en k grupos en los que cada observación pertenece al grupo con la media más cercana.
+* El conjunto de datos usado para la evaluación ha sido el Dataset Wine, con 178 observaciones y 14 variables. El dataset contiene datos númericos con el origen de los vinos (su clasificación) y medidas de su composición química.
+* Se ha encontrado el número óptimo de clústeres utilizando el método Elbow, el método Silhouette y el método Gap-Static.
+* Se ha aplicado el algoritmo k-means y posteriormente se ha evaluado la precisión de la clasificación mediante el algoritmo frente a la real. Se ha obtenido una precisión del 96.6%
+* Se han aplicado dos algoritmos diferentes de k-means al mismo conjunto de datos. En primer lugar se ha aplicado el algoritmo PAM que utiliza las medianas en vez de las medias. En ese caso se ha obtenido una precisión del 91% en la clasificación. Con el segundo método aplicado, el algoritmo CLARA, se ha obtenido una precisión del 93.8%
+* Los tres algoritmos forman parte de la familia de agrupamiento por particiones, donde se parte de una k conocida.
+* CLARA muestrea el conjunto de datos para mejorar la eficiencia de PAM (como se ha confirmado en la precisión del modelo).
+
+
+
+******
+# Ejemplo 2
+## Métodos de asociación
+******
+En este ejemplo vamos trabajar el algoritmo "apriori" para obtener reglas de asociación a partir de un data set Dichas reglas nos ayudarán a comprender cómo la información del data set se relaciona entre si.
+Para dicho objetivo vamos a trabajar el dataset de Groceries, que ya viene incluido con las librerías de arules.
+```{r message= FALSE, warning=FALSE}
+# install.packages("arules")
+library(arules)
+data("Groceries")
+```
+Inspeccionamos el dataset y vemos que tiene un listado de elementos que fueron comprados juntos. Vamos a analizarlo un poco visualmente.
+```{r message= FALSE, warning=FALSE}
+# ?Groceries
+inspect(head(Groceries, 5))
+```
+En el siguiente plot podemos ver que los tres elementos más vendidos son la leche entera, otras verduras y bollería. Dada la simplicidad del Dataset no se pueden hacer mucho más análisis. Pero para datasets más complejos miraríamos la frecuencia y distribución de todos los campos, en busca de posibles errores.
+```{r message= FALSE, warning=FALSE}
+itemFrequencyPlot(Groceries,topN=20,type="absolute")
+```
+Si lanzamos el algoritmo "apriori", generaremos directamente un set de reglas con diferente soporte, confianza y lift. El soporte indica cuantas veces se han encontrado las reglas {lsh => rhs} en el dataset, cuanto más alto mejor. La confianza habla de la probabilidad de que {rhs} se de en función de {lhs}. Y el lift es un parámetro que nos indica cuánto de aleatoriedad hay en las reglas. Un lift de 1 o menos es que las reglas son completamente fruto del azar.
+```{r message= FALSE, warning=FALSE}
+grocery_rules <- apriori(Groceries, parameter = list(support = 0.01, confidence = 0.5))
+
+inspect(head(sort(grocery_rules, by = "confidence"), 3))
+```
+Podemos probar a ordenar las reglas por los diferentes parámetros, para ver que información podemos obtener.
+```{r message= FALSE, warning=FALSE}
+inspect(head(sort(grocery_rules, by = "support"), 3))
+```
+ordenando por support vemos que, con un lift de 2 y una confianza del 51%, podemos decir que la gente que en la misma compra hacía verduras y yogurt, compraban también leche entera. Hay que tener en cuenta que la leche entera es por otro lado el elemento más vendido de la tienda.
+```{r message= FALSE, warning=FALSE}
+inspect(head(sort(grocery_rules, by = "lift"), 3))
+```
+Por otro lado, si ordenamos por lift, vemos que con un soporte del 1% y una confianza del 58%, la gente que compra cítricos y tubérculos compra también verduras
+
+Esta información nos puede ayudar a dar consejos a la dirección de la disposición de los elementos en la tienda o de que productos poner en oferta según lo que se ha comprado. Y si tuviéramos más información podríamos hacer análisis más profundos y ver que clientes compran exactamente qué.
+
+## Ejercicio 2.1:  
+En este ejercicio seguiréis los pasos del ciclo de vida de un proyecto de minería de datos para el caso de un algoritmo de generación de reglas de asociación. Lo haréis con el fichero Lastfm.csv que encontraréis adjunto. Este fichero contiene un conjunto de registros. Estos registros son el histórico de las canciones que ha escuchado un usuario (user) en un portal Web de música. "artist" es el nombre del grupo que ha escuchado, sex y country corresponden a variables que describen al usuario.
+
+### Respuesta 2.1:
+
+En este apartado de la práctica nos centraremos en la búsqueda de asociaciones entre los grupos que han escuchado los usuarios analizados, los cuales están registrados en la base de datos `lastfm.csv` entregada en la PEC. El conjunto de datos refleja la reproducción en línea de la radio Lastfm, que realiza un seguimiento de todo lo que el usuario reproduce. 
+
+El enfoque de este análisis es el de las reglas de asociación. Las reglas de asociación ayudan a encontrar patrones en los datos. En concreto trabajaremos con el algoritmo **apriori**, que se utiliza para la búsqueda de asociaciones entre un conjunto de elementos. Para ello se definen las denominadas *reglas de asociación*. Una regla de asociación está formada por uno o más antecedentes y una consecuencia y, en su forma más simple, está caracterizada por su *soporte* (porcentaje de casos en los que se dan los antecedentes conjuntamente) y su *confianza* (porcentaje de casos en los que se da la consecuencia junto con los antecedentes respecto a las veces que se dan los antecedentes conjuntamente).
+
+Primeramente, vamos a examinar el conjunto de datos, comprender su estructura y variables y revisar si posee valores nulos.
+
+```{r message= FALSE, warning=FALSE}
+# Paquete arules para la creacion de modelos de reglas de asociacion
+# install.packages('arules')
+library(arules)
+
+# Impostamos los datos y guardamos en variable music_data
+music_data<-read.table('lastfm.csv',head=TRUE,sep=',', stringsAsFactors = TRUE, col.names=c('User', 'Artist', 'Sex', 'Country'))
+
+# Revisamos contenido en music_data
+head(music_data)
+```
+
+```{r message= FALSE, warning=FALSE}
+# Revisamos la estructura de music_data
+str(music_data)
+# Resumen de las variables
+summary(music_data)
+```
+El conjunto de datos está formado por 289955 observaciones y 4 variables. Posee información demográfica (sexo y ubicación), así como un identificador de usuario y los artistas que escucha:
+
+VARIABLE      | TIPO     | DESCRIPCIÓN
+-----------   | -------- | ---------------- 
+User          | integer  | Usuario 
+Artist          | factor  | Artistas reproducidos 
+Sex         | factor  | Male or Female  
+Country          | factor  | País del usuario 
+
+Veamos si tenemos valores vacíos en los datos:
+
+```{r message= FALSE, warning=FALSE}
+# Estadísticas de valores vacíos
+colSums(is.na(music_data))
+```
+No tenemos valores vacíos en el dataset. En este caso, no necesitamos hacer ningún tratamiento adicional a los datos.
+
+Antes de aplicar el algoritmo apriori, tenemos que preparar el conjunto de datos. Como el análisis se centra en asociar los grupos que escucha un determinado usuario (por ejemplo para un sistema de recomendación de artistas), vamos a quedarnos con los valores únicos de las columnas 'User' y 'Artist' y transformarlos en transacciones, que es una clase de datos definida en el paquete `arules`.
+
+```{r message= FALSE, warning=FALSE}
+# Guardamos el usuario y artista en playlist
+playlist <- split(x=music_data$Artist,f=music_data$User)
+# Nos quedamos con los valores únicos. Quitamos duplicados
+playlist <- lapply(playlist,unique)
+# Transformamos playlist en un conjunto de datos de transacciones que es lo que necesitamos para arules
+# R tratará esto como una clase especial de transacciones de arules
+playlist <- as(playlist,"transactions")
+```
+
+En el siguiente gráfico vamos a relacionar la frecuencia absoluta con la que los grupos aparecen reproducidos por los usuarios.
+
+```{r message= FALSE, warning=FALSE}
+itemFrequencyPlot(playlist, topN=10,type="absolute", col = topo.colors(10), xlab='Artistas', ylab='Frecuencia')
+```
+
+
+Podemos ver el top 10 de los artistas más reproducidos, donde destacan Radiohead, The Beatles y Coldplay.
+
+A continuación se generan las reglas de asociación mediante el algoritmo apriori. Los conceptos claves que caracterizan las reglas de asociación y que conforman los parámetros de la función que usaremos son:
+
+* **Support/Soporte:** porcentaje de casos en los que se dan los antecedentes conjuntamente. El soporte indica cuantas veces se han encontrado las reglas {lsh => rhs} en el dataset, cuanto más alto mejor. 
+
+* **Confidence/Confianza:** porcentaje de casos en los que se da la consecuencia junto con los antecedentes respecto a las veces que se dan los antecedentes conjuntamente. La confianza habla de la probabilidad de que {rhs} se de en función de {lhs}.
+
+* **Lift:** es el cociente entre la confianza de la regla y el soporte de la consecuencia, este parámetro permite valorar si dicha consecuencia tiene más probabilidad cuando se da el antecedente o en general. Es un parámetro que nos indica cuánto de aleatoriedad hay en las reglas. Un lift de 1 o menos significa que las reglas son completamente fruto del azar.
+
+```{r message= FALSE, warning=FALSE}
+# Construcción de las reglas de asociación
+# Solo asociaciones con soporte > 0.01 y confianza > 0.5
+music_rules <- apriori(playlist,parameter=list(support = 0.01, confidence = 0.5))
+```
+Podemos extraer un resumen estadístico de los parámetros de las reglas de asociación creadas. En la creación hemos establecido un soporte del 1% y una confianza del 50%. Con esos parámetros podemos ver que se han generado 50 reglas.
+
+```{r message= FALSE, warning=FALSE}
+# Resumen de las reglas creadas
+summary(music_rules)
+```
+Exploremos ahora los resultados generados con el algoritmo. Previo a eso, explicaremos los parámetros que van a aparecer en el resultado:
+
+* **lhs:** (left-hand-sides) es la parte izquierda de la regla, o antecedente (elemento/s que "causa" la asociación del otro item).
+* **rhs:** (right-hand-sides) es la parte derecha de la regla, o resultado (elemento generado como "consecuencia" de otro item).
+
+Los otros conceptos ya los introdujimos previamente:
+
+* **Support/Soporte:**  indica cuantas veces se han encontrado las reglas {lsh => rhs} en el dataset, cuanto más alto mejor. 
+
+* **Confidence/Confianza:** probabilidad de que {rhs} se de en función de {lhs}.
+
+* **Lift:** mide si la regla se debió al azar. Calcula el ratio entre la confianza de la regla y el consecuente de la regla o rhs. Un lift de 1 o menos significa que las reglas son completamente fruto del azar.
+
+Como condición para todos las visualizaciones se ha especificado que el Lift sea mayor a 5, asegurando así que las reglas no son por azar.
+
+En primer lugar veamos el Top 5 de las reglas ordenadas por Confianza:
+
+```{r message= FALSE, warning=FALSE}
+inspect(head(sort(subset(music_rules,subset=lift>5), by = "confidence"), 5))
+```
+Con una confianza del 59.7% y un soporte del 1%, un Lift de 5.7 vemos que quien escucha Led Zeppelin y The Doors probablemente también escuche Pink Floyd.
+
+Ahora veamos el Top 5 de las reglas ordenadas por Soporte:
+
+```{r message= FALSE, warning=FALSE}
+inspect(head(sort(subset(music_rules,subset=lift>5), by = "support"), 5))
+```
+Con una confianza del 50.7% y un soporte del 1.35%, un Lift de 8.6 vemos que quien escucha Juda Priest probablemente también escuche Iron Maiden.
+
+Y, por último, veamos el Top 5 de las reglas ordenadas por Lift:
+
+```{r message= FALSE, warning=FALSE}
+inspect(head(sort(subset(music_rules,subset=lift>5), by = "lift"), 5))
+```
+Vemos que las relación menos azarosas es la establecida para The Pussycat Dolls y Rihanna. Con una confianza del 57.7% y un Lift de 13.4 quien reproduzca las primeras se puede predecir que reproducirá la segunda.
+
+Al definir nuestras reglas, hemos dado un valor de 0.01 para el soporte y 0.5 para la confianza. Observemos rápidamente qué ocurre si modificamos esos valores. Vamos a aumentar la confianza al 60% y el soporte al 1.1%.
+
+```{r message= FALSE, warning=FALSE}
+# Construcción de las reglas de asociación
+# Solo asociaciones con soporte > 0.01 y confianza > 0.6
+music_rules2 <- apriori(playlist,parameter=list(support = 0.011, confidence = 0.6))
+inspect(sort(music_rules2,by='confidence'))
+```
+
+Sólo se crean tres reglas de asociación. Estos tres registros que cumplen las condiciones antes no aparecían en nuestras tablas porque su Lift está en 3 y 4 (antes hemos hecho la visualización de registros cuyo Lift fuese superior a 5). Con un 66% de confianza y soporte de 1,1% está la primera asociación de que para aquellos que escuchan Oasis y The Killers, es bastante predictivo que disfrutarán de Coldplay.
+
+Este tipo de metodología nos sirve para implementar un sistema de recomendaciones de reproducciones para los usuarios.
+
+***
+### Conclusiones Ejercicio 2.1
+***
+* Las reglas de asociación se utilizan para explorar la relación entre elementos y conjuntos de elementos. La regla de asociación es la mención explícita en una relación en los datos, en la forma de X => Y, donde X (el antecedente) puede estar compuesto por uno o varios elementos y se llama conjunto de elementos, e Y (el consecuente) es siempre un solo elemento. En este proyecto, el interés está en los antecedentes de la música reproducida por los usuarios para recomendar las siguientes reproducciones. 
+* El objetivo del algortimo apriori es calcular los conjuntos de elementos frecuentes y las reglas de asociación de manera eficiente y calcular su soporte y su confianza.
+* En el ejercicio se utiliza el dataset Lastfm, que contiene 289955 registros y 4 variables de tipo entero y factor (cadenas de caracteres) de las cuales se hace un resumen detallado en el estudio.
+*	Las reglas de asociación se implementaron para artistas que tengan un soporte mayor al 1% una confianza mayor al 50% visualizando solo aquellos que tengan un Lift superior al 5. 
+*	También se hizo la prueba para artistas que tengan un soporte mayor al 1.1% y una confianza mayor al 60% independientemente de su Lift. 
+* De las asociaciones resultantes, se pueden destacar, entre otras, las siguientes:
+    + Los usuarios que escuchan Led Zeppelin y The Doors probablemente también escuchen Pink Floyd.
+    + Los usuarios que escuchan Juda Priest probablemente también escuchen Iron Maiden. 
+    + Los usuarios que escuchan The Pussycat Dolls probablemente también escuchen Rihanna.
+    + Los usuarios que escuchan Oasis y The Killers probablemente también escuchen Coldplay. 
+
+***
+## Referencias Bibliográficas 
+***
+
+**Sangüesa i Solé, R**. *Agregación (clustering)*. PID_00165731. UOC
+
+**Sangüesa i Solé, R., Molina Félix, Luis Carlos**. *Reglas de asociación*. PID_00165732. UOC
+
+**Peng, Roger D.**.(2020). *Exploratory Data Analysis with R*. 
+
+**Gil Bellosta, Carlos J.**.(2018). *R para profesionales de los datos*. 
+
+*Market Basket Analysis using R*. Disponible en: https://www.datacamp.com/community/tutorials/market-basket-analysis-r
+
+*Making recommendations using association rules (R Programming)*. Disponible en: https://towardsdatascience.com/making-recommendations-using-association-rules-r-programming-1fd891dc8d2e
+
+*Complete guide to Association Rules*. Disponible en: https://towardsdatascience.com/association-rules-2-aa9a77241654
+
+*Association Rules and the Apriori Algorithm: A Tutorial*. Disponible en: https://www.kdnuggets.com/2016/04/association-rules-apriori-algorithm-tutorial.html
+
+*Quantitative Analysis of Online Radio “LastFM” Dataset Using R-Programming*. Disponible en: https://thinkandknowledgetank.home.blog/2019/07/22/quantitative-analysis-of-online-radio-lastfm-dataset-using-r-programming/
+
+*Clustering in R*. Disponible en: https://blog.dominodatalab.com/clustering-in-r/
+
+**UCI Machine Learning Repository**. *Wine Data Set.*. Disponible en: https://archive.ics.uci.edu/ml/datasets/Wine
+
+*clustering-wine-dataset*. Disponible en: https://www.kaggle.com/tharindusathis/clustering-wine-dataset
+
+**Osowska, E.**. *Clustering of wines - flat, hierarchical and fuzzy algorithms*. Disponible en: https://rpubs.com/eosowska/clustering
+
+**Boehmke, B, Greenwell, B.**. *Hands-On Machine Learning with R*.(2020) Disponible en: https://bradleyboehmke.github.io/HOML/
+
+*K-Medoids in R: Algorithm and Practical Examples*. Disponible en: https://www.datanovia.com/en/lessons/k-medoids-in-r-algorithm-and-practical-examples/
+
+*CLARA in R : Clustering Large Applications*. Disponible en: https://www.datanovia.com/en/lessons/clara-in-r-clustering-large-applications/
+
+**R Documentation.** *Clustering Large Applications*.Disponible en: https://www.rdocumentation.org/packages/cluster/versions/2.1.0/topics/clara
+
+**R Documentation.** *Partitioning Around Medoids*.Disponible en: https://www.rdocumentation.org/packages/cluster/versions/2.1.0/topics/pam
+
+**R Documentation.** *Dertermining and Visualizing the Optimal Number of Clusters*.Disponible en: https://www.rdocumentation.org/packages/factoextra/versions/1.0.7/topics/fviz_nbclust
+
+
+
+******
+# Rúbrica
+******
+
+## Ejercicio 1.1
+
+* 15%. Se explican los campos de la base de datos, preparación y análisis de datos
+* 10%. Se aplica el algoritmo de agrupamiento de forma correcta.
+* 25%. Se prueban con diferentes valores de k.
+* 10%. Se obtiene una medida de lo bueno que es el agrupamiento.
+* 10%. Se ponen nombres a las asociaciones.
+* 20%. Se describen e interpretan los diferentes clústers obtenidos.
+* 10%. Se presenta el código y es fácilmente reproducible.
+
+## Ejercicio 1.2
+
+* 25%. Se prueba un algoritmo diferente al kmeans.
+* 25%. Se prueba otro algoritmo diferente al kmeans.
+* 40%. Se comparan los resultados del kmeans y los otros dos métodos probados en este ejercicio.
+* 10%. Se presenta el código y es fácilmente reproducible.
+
+## Ejercicio 2.1
+
+* 10%. Se realiza un resumen de los datos incluidos en la base de datos.
+* 15%. Se preparan los datos de forma correcta.
+* 10%. Se aplica el algoritmo de reglas de asociación.
+* 20%. Se realizan diferentes pruebas variando algunos parámetros.
+* 35%. Se explican las conclusiones que se obtienen.
+* 10%. Se presenta el código y es fácilmente reproducible.

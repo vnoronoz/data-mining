@@ -1,0 +1,642 @@
+---
+title: 'Minería de datos: PEC3 - Clasificación con árboles de decisión'
+author: "Autor: **VANESA NAVARRO ORONOZ**"
+date: "Diciembre 2020"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    includes:
+      in_header: 75.584-PEC-header.html
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(eval=T, echo=T)
+```
+
+
+******
+# Introducción
+******
+## Presentación
+Esta prueba de evaluación continua cubre los Módulos 3 (Clasificación:
+árboles de decisión) y el Módulo 8 (Evaluación de modelos) del programa de la asignatura.
+
+## Competencias
+Las competencias que se trabajan en esta prueba son:  
+
+* Uso y aplicación de las TIC en el ámbito académico y profesional.
+* Capacidad para innovar y generar nuevas ideas.
+* Capacidad para evaluar soluciones tecnológicas y elaborar propuestas de proyectos teniendo en cuenta los recursos, las alternativas disponibles y las condiciones de mercado.
+* Conocer las tecnologías de comunicaciones actuales y emergentes así como saberlas aplicar convenientemente para diseñar y desarrollar soluciones basadas en sistemas y tecnologías de la información.
+* Aplicación de las técnicas específicas de ingeniería del software en las diferentes etapas del ciclo de vida de un proyecto.
+* Capacidad para aplicar las técnicas específicas de tratamiento, almacenamiento y administración de datos.
+* Capacidad para proponer y evaluar diferentes alternativas tecnológicas para resolver un problema concreto.
+
+## Objetivos
+La correcta asimilación del Módulo 3. En esta PEC trabajaremos la generación e interpretación de un árbol de decisión con el software de prácticas. Seguiremos también con la preparación de los datos y la extracción inicial de conocimiento.
+
+## Descripción de la PEC a realizar
+La prueba está estructurada en un total de un único ejercicio práctico.
+
+## Recursos Básicos
+**Material docente proporcionado por la UOC.** 
+
+Módulo 3 y 8 del material didáctico.
+
+**Complementarios** 
+
+* Los descritos para la anterior PEC.
+* Fichero titanic.csv
+* R package C5.0 (Decision Trees and Rule-Based Models): https://cran.r-project.org/web/packages/C50/index.html
+
+
+## Criterios de valoración
+
+Todos los ejercicios deben ser presentados de forma razonada y clara, especificando todos y cada uno de los pasos que se hayan llevado a cabo para su resolución. No se aceptará ninguna respuesta que no esté claramente justificada.
+
+## Formato y fecha de entega
+El formato de entrega es: usernameestudiant-PECn.html/doc/docx/odt/pdf.
+Se recomienda la entrega en formato html y también el Rmd que genera el html entregado.
+Fecha de Entrega: 18/12/2019.
+Se debe entregar la PEC en el buzón de entregas del aula.
+
+
+## Nota: Propiedad intelectual 
+
+> A menudo es inevitable, al producir una obra multimedia, hacer uso de recursos creados por terceras personas. Es por lo tanto comprensible hacerlo en el marco de una práctica de los estudios de Informática, Multimedia y Telecomunicación de la UOC, siempre y cuando esto se documente claramente y no suponga plagio en la práctica. 
+
+> Por lo tanto, al presentar una práctica que haga uso de recursos ajenos, se debe presentar junto con ella un documento en qué se detallen todos ellos, especificando el nombre de cada recurso, su autor, el lugar dónde se obtuvo y su estatus legal: si la obra está protegida por el copyright o se acoge a alguna otra licencia de uso (Creative Commons, licencia GNU, GPL ...). 
+El estudiante deberá asegurarse de que la licencia  no impide específicamente su uso en el marco de la práctica. En caso de no encontrar la información correspondiente tendrá que asumir que la obra está protegida por copyright. 
+
+> Deberéis, además, adjuntar los ficheros originales cuando las obras utilizadas sean digitales, y su código fuente si corresponde.  
+
+******
+# Enunciado  
+******
+
+En este ejercicio vamos a seguir los pasos del ciclo de vida de un proyecto de minería de datos, para el caso de un algoritmo de clasificación y más concretamente un árbol de decisión. Lo haremos con el archivo titanic.csv, que se encuentra adjunto en el aula. Este archivo contiene un registro por cada pasajero que viajaba en el Titanic. En las variables se caracteriza si era hombre o mujer, adulto o menor (niño), en qué categoría viajaba o si era miembro de la tripulación.
+
+Objetivos:
+
+*	Estudiar los datos, por ejemplo: ¿Número de registros del fichero? ¿Distribuciones de valores por variables? ¿Hay campos mal informados o vacíos?
+*	Preparar los datos. En este caso ya están en el formato correcto y no es necesario discretizar ni generar atributos nuevos. Hay que elegir cuáles son las variables que se utilizarán para construir el modelo y cuál es la variable que clasifica. En este caso la variable por la que clasificaremos es el campo de si el pasajero sobrevivió o no.
+*	Instalar, si es necesario, el paquete C5.0  Se trata de una implementación más moderna del algoritmo ID3 de Quinlan. Tiene los principios teóricos del ID3 más la poda automática. Con este paquete generar un modelo de minería.
+*	¿Cuál es la calidad del modelo?
+*	Generar el árbol gráfico.
+* Generar y extraer las reglas del modelo.
+*	En función del modelo, el árbol y las reglas: ¿Cuál es el conocimiento que obtenemos?
+*	Probar el modelo generado presentándole nuevos registros. ¿Clasifica suficientemente bien?
+  
+##  Revisión de los datos, extracción visual de información y preparación de los datos
+
+Carga de los datos:
+
+```{r message= FALSE, warning=FALSE}
+data<-read.csv("./titanic.csv",header=T,sep=",")
+attach(data)
+```
+
+
+Empezaremos haciendo un breve análisis de los datos ya que nos interesa tener una idea general de los datos que disponemos. Por ello, primero calcularemos las dimensiones de nuestra base de datos y analizaremos qué tipos de atributos tenemos.
+
+Para empezar, calculamos las dimensiones de la base de datos mediante la función dim(). Obtenemos que disponemos de 2201 registros o pasajeros (filas) y 4 variables (columnas). 
+
+```{r}
+dim(data)
+```
+
+¿Cuáles son esas variables? Gracias a la función str() sabemos que las cuatro variables son categóricas o discretas, es decir, toman valores en un conjunto finito. La variable CLASS hace referencia a la clase en la que viajaban los pasajeros (1ª, 2ª, 3ª o crew), AGE determina si era adulto o niño (Adulto o Menor), la variable SEX si era hombre o mujer (Hombre o Mujer) y la última variable (SURVIVED) informa si el pasajero murió o sobrevivió en el accidente (Muere o Sobrevive).
+
+```{r}
+str(data)
+```
+
+Es de gran interés saber si tenemos muchos valores nulos (campos vacíos) y la distribución de valores por variables. Es por ello recomendable empezar el análisis con una visión general de las variables. Mostraremos para cada atributo la cantidad de valores perdidos mediante la función summary.  
+
+```{r}
+summary(data)
+```
+
+Disponemos por tanto de un data frame formado por cuatro variables categóricas sin valores nulos. Para un conocimiento mayor sobre los datos, tenemos a nuestro alcance unas herramientas muy valiosas: las herramientas de visualización. Para dichas visualizaciones, haremos uso de los paquetes ggplot2, gridExtra y grid de R. 
+
+```{r}
+if(!require(ggplot2)){
+    install.packages('ggplot2', repos='http://cran.us.r-project.org')
+    library(ggplot2)
+}
+if(!require(grid)){
+    install.packages('grid', repos='http://cran.us.r-project.org')
+    library(grid)
+}
+if(!require(gridExtra)){
+    install.packages('gridExtra', repos='http://cran.us.r-project.org')
+    library(gridExtra)
+}
+
+```
+
+
+Nos interesa describir la relación entre la supervivencia y cada uno de las variables mencionadas anteriormente. Para ello, por un lado graficaremos mediante diagramas de barras la cantidad de muertos y supervivientes según la clase en la que viajaban, la edad o el sexo. Por otro lado, para obtener los datos que estamos graficando utilizaremos el comando table para dos variables que nos proporciona una tabla de contingencia.
+
+```{r}
+grid.newpage()
+plotbyClass<-ggplot(data,aes(CLASS,fill=SURVIVED))+geom_bar() +labs(x="Class", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("black","#008000"))+ggtitle("Survived by Class")
+plotbyAge<-ggplot(data,aes(AGE,fill=SURVIVED))+geom_bar() +labs(x="Age", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("black","#008000"))+ggtitle("Survived by Age")
+plotbySex<-ggplot(data,aes(SEX,fill=SURVIVED))+geom_bar() +labs(x="Sex", y="Passengers")+ guides(fill=guide_legend(title=""))+ scale_fill_manual(values=c("black","#008000"))+ggtitle("Survived by Sex")
+grid.arrange(plotbyClass,plotbyAge,plotbySex,ncol=2)
+
+```
+
+De estos gráficos obtenemos información muy valiosa que complementamos con las tablas de contingencia (listadas abajo). Por un lado, la cantidad de pasajeros que sobrevivieron es similar en hombres y mujeres (hombres: 367 y mujeres 344). No, en cambio, si tenemos en cuenta el porcentaje respecto a su sexo. Es decir, pese a que la cantidad de mujeres y hombres que sobrevivieron es pareja, viajaban más hombres que mujeres (470 mujeres y 1731 hombres), por lo tanto, la tasa de muerte en hombres es muchísimo mayor (el 78,79% de los hombres murieron mientras que en mujeres ese porcentaje baja a 26,8%). 
+
+En cuanto a la clase en la que viajaban, los pasajeros que viajaban en primera clase fueron los únicos que el porcentaje de supervivencia era mayor que el de mortalidad. El 62,46% de los viajeros de primera clase sobrevivió, el 41,4% de los que viajaban en segunda clase mientras que de los viajeros de tercera y de la tripulación solo sobrevivieron un 25,21% y 23,95% respectivamente. Para finalizar, destacamos que la presencia de pasajeros adultos era mucho mayor que la de los niños (2092 frente a 109) y que la tasa de supervivencia en niños fue mucho mayor (52,29% frente a 31,26%), no podemos obviar, en cambio, que los únicos niños que murieron fueron todos pasajeros de tercera clase (52 niños). 
+
+```{r}
+tabla_SST <- table(SEX, SURVIVED)
+tabla_SST
+prop.table(tabla_SST, margin = 1)
+```
+
+```{r}
+tabla_SCT <- table(CLASS,SURVIVED)
+tabla_SCT
+prop.table(tabla_SCT, margin = 1)
+```
+
+```{r}
+tabla_SAT <- table(AGE,SURVIVED)
+tabla_SAT
+prop.table(tabla_SAT, margin = 1) 
+```
+
+```{r}
+tabla_SAT.byClass <- table(AGE,SURVIVED,CLASS)
+tabla_SAT.byClass
+```
+
+Una alternativa interesante a las barras de diagramas, es el plot de las tablas de contingencia. Obtenemos la misma información pero para algunos receptores puede resultar más visual.  
+
+```{r}
+par(mfrow=c(2,2))
+plot(tabla_SCT, col = c("black","#008000"), main = "SURVIVED vs. CLASS")
+plot(tabla_SAT, col = c("black","#008000"), main = "SURVIVED vs. AGE")
+plot(tabla_SST, col = c("black","#008000"), main = "SURVIVED vs. SEX")
+```
+
+Nuestro objetivo es crear un árbol de decisión que permita analizar qué tipo de pasajero del Titanic tenía probabilidades de sobrevivir o no. Por lo tanto, la variable por la que clasificaremos es el campo de si el pasajero sobrevivió o no. De todas maneras, al imprimir las primeras (con head) y últimas 10 (con tail) filas nos damos cuenta de que los datos están ordenados.
+
+```{r}
+head(data,10)
+tail(data,10)
+```
+
+Nos interesará "desordenarlos". Guardaremos los datos con el nuevo nombre como "data_random".
+
+```{r}
+set.seed(1)
+data_random <- data[sample(nrow(data)),]
+```
+
+Para la futura evaluación del árbol de decisión, es necesario dividir el conjunto de datos en un conjunto de entrenamiento y un conjunto de prueba. El conjunto de entrenamiento es el subconjunto del conjunto original de datos utilizado para construir un primer modelo; y el conjunto de prueba, el subconjunto del conjunto original de datos utilizado para evaluar la calidad del modelo. 
+
+Lo más correcto será utilizar un conjunto de datos diferente del que utilizamos para construir el árbol, es decir, un conjunto diferente del de entrenamiento. No hay ninguna proporción fijada con respecto al número relativo de componentes de cada subconjunto, pero la más utilizada acostumbra a ser 2/3 para el conjunto de entrenamiento y 1/3, para el conjunto de prueba. 
+
+La variable por la que clasificaremos es el campo de si el pasajero sobrevivió o no, que está en la cuarta columna.
+
+```{r}
+set.seed(666)
+y <- data_random[,4] 
+X <- data_random[,1:3] 
+```
+
+
+Podemos elegir el subconjunto de entrenamiento y de prueba de diversas maneras. La primer opción consiste en calcular a cuántas filas corresponde dos tercios de los datos (2*2201/3=1467) y dividir "manualmente" el conjunto.
+
+```{r}
+trainX <- X[1:1467,]
+trainy <- y[1:1467]
+testX <- X[1468:2201,]
+testy <- y[1468:2201]
+```
+
+En la segunda opción podemos crear directamente un rango.
+
+```{r}
+indexes = sample(1:nrow(data), size=floor((2/3)*nrow(data)))
+trainX<-X[indexes,]
+trainy<-y[indexes]
+testX<-X[-indexes,]
+testy<-y[-indexes]
+```
+
+Después de una extracción aleatoria de casos es altamente recomendable efectuar un análisis de datos mínimo para asegurarnos de no obtener clasificadores sesgados por los valores que contiene cada muestra. 
+
+## Creación del modelo, calidad del modelo y extracción de reglas
+
+Se crea el árbol de decisión usando los datos de entrenamiento (no hay que olvidar que la variable outcome es de tipo factor):
+
+```{r}
+trainy = as.factor(trainy)
+model <- C50::C5.0(trainX, trainy,rules=TRUE )
+summary(model)
+```
+
+Errors muestra el número y porcentaje de casos mal clasificados en el subconjunto de entrenamiento. El árbol obtenido clasifica erróneamente 304 de los 1467 casos dados, una tasa de error del 20.7%.
+
+A partir del árbol de decisión de dos hojas que hemos modelado, se pueden extraer las siguientes reglas de decisión (gracias a rules=TRUE podemos imprimir las reglas directamente):
+
+SEX = "Hombre" → Muere. Validez: 80,2%
+
+CLASS = "3a" → Muere. Validez: 75.1%
+
+CLASS "1ª", "2ª" o "Crew" y SEX = "Mujer" → Sobrevive. Validez: 90,5%
+
+Por tanto podemos concluir que el conocimiento extraído y cruzado con el análisis visual se resume en "las mujeres y los niños primero a excepción de que fueras de 3ª clase".
+
+A continuación mostramos el árbol obtenido.
+
+```{r}
+model <- C50::C5.0(trainX, trainy)
+plot(model)
+```
+
+
+## Validación del modelo con los datos reservados
+Una vez tenemos el modelo, podemos comprobar su calidad prediciendo la clase para los datos de prueba que nos hemos reservado al principio. 
+
+```{r}
+predicted_model <- predict( model, testX, type="class" )
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(predicted_model == testy) / length(predicted_model)))
+```
+
+Cuando hay pocas clases, la calidad de la predicción se puede analizar mediante una matriz de confusión que identifica los tipos de errores cometidos. 
+
+```{r}
+mat_conf<-table(testy,Predicted=predicted_model)
+mat_conf
+```
+
+Otra manera de calcular el porcentaje de registros correctamente clasificados usando la matriz de confusión:
+
+```{r}
+
+porcentaje_correct<-100 * sum(diag(mat_conf)) / sum(mat_conf)
+print(sprintf("El %% de registros correctamente clasificados es: %.4f %%",porcentaje_correct))
+
+```
+
+Además, tenemos a nuestra disposición el paquete gmodels para obtener información más completa:
+
+```{r}
+if(!require(gmodels)){
+    install.packages('gmodels', repos='http://cran.us.r-project.org')
+    library(gmodels)
+}
+```
+```{r}
+CrossTable(testy, predicted_model,prop.chisq  = FALSE, prop.c = FALSE, prop.r =FALSE,dnn = c('Reality', 'Prediction'))
+```
+
+
+******
+# Ejercicios
+******
+
+## Ejercicio 1
+Partiendo del ejemplo mostrado, repetid el ejercicio con otro conjunto de datos. Pueden ser datos reales de vuestro ámbito laboral o de algún repositorio de datos de Internet. Mirad por ejemplo: http://www.ics.uci.edu/~mlearn/MLSummary.html i http://www.kaggle.com.
+
+Es muy importante seleccionar correctamente el conjunto de datos y explicar de forma correcta la base de datos y la razón de su elección.
+
+Podéis añadir o variar los puntos si lo consideráis necesario (por ejemplo, crear el modelo con todos los datos y validación cruzada, probar el boosting o variar el prunning ...) Recordad también que el ciclo de vida de los proyectos de minería contempla retroceder para volver a generar el modelo con datos modificados o parámetros del algoritmo variados si el resultado no es lo suficientemente bueno.
+
+### Introducción
+
+El objetivo de este ejercicio es crear un clasificador mediante arboles de decisión. Los árboles de clasificación tienen como objetivo crear un modelo que predice el valor de una variable de destino en función de diversas variables de entrada y son una de las técnicas más eficaces de la clasificación supervisada.
+
+El árbol de decisión o de clasificación es una representación visual de la manera en que se estructuran las decisiones que dan lugar a la clasificación. El árbol de clasificación lo componen una serie de nodos internos y externos así como arcos que unen los nodos. Los nodos externos se les conocen como hojas del árbol y se marcan con una clase o una distribución de probabilidad sobre las clases.
+
+Existen diferentes algoritmos que implementan este método entre los más conocidos se encuentran: ID3, C4.5, C5.0, CHAID, MARS o LMDT.
+
+Para este caso, el algoritmo que se usará es el C5.0.
+
+
+### Selección y exploración del juego de datos 
+
+El conjunto de datos seleccionado es "Car evaluation Dataset" que se encuentra en el repositorio de ML de la UCI en la siguiente dirección: https://archive.ics.uci.edu/ml/datasets/car+evaluation. Se trata de una base de datos sobre una evaluación de automóviles en el que los coches se evalúan en función a ciertos parámetros que se explicarán más adelante. Se ha escogido este juego de datos porque todas sus variables son categóricas.
+
+En un problema de clasificación, si las variables son numéricas y de tipo continuo, las combinaciones posibles entre variables tienden a ser infinitas. La mayoría de los modelos de clasificación solo son capaces de trabajar un número limitado de categorías. Por esa razón hay que evitar el uso de variables continuas en los datos, y si se tienen, categorizarlas. Para ahorrar ese paso, se ha escogido un dataset que ya tiene todas sus variables categorizadas.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Paquetes de R
+library(ggplot2)
+library(tidyverse)
+library(grid)
+library(gridExtra)
+library(skimr)
+library(C50)
+library(partykit)
+library(gmodels)
+```
+
+Lectura del conjunto de datos
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+car_data <- read.csv("https://archive.ics.uci.edu/ml/machine-learning-databases/car/car.data", 
+                     header=FALSE)
+colnames(car_data)<-c("buying","maint","doors","persons","lug_boot","safety","class")
+attach(car_data)
+```
+
+Con las funciones summary, str y skim podemos obtener información resumida sobre los datos, sus valores y su estructura.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+summary(car_data)
+```
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+str(car_data)
+```
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+skim(car_data)
+```
+
+
+
+El conjunto de datos está formado por 1728 observaciones y 7 variables. Los seis parámetros que evalúan el coche son su precio de compre, su coste de mantenimiento, número de puertas, capacidad de personas, tamaño del maletero y seguridad. La última clase define la aceptabilidad del coche en función de esos parámetros y será el objetivo de la clasificación de la práctica. Esta variable toma los siguientes valores:
+  unacc - inaceptable
+  acc - aceptable
+  good - bueno
+  v-good - muy bueno
+
+En la siguiente tabla se puede ver un resumen de todas las variables y los valores que toman:
+
+VARIABLE      | TIPO      | VALORES    | DESCRIPCIÓN   
+-----------   | --------  | --------  | -------- 
+buying    | character  | v-high, high, med, low | precio de compra
+maint     | character  | v-high, high, med, low | coste de mantenimiento
+doors   | character  | 2, 3, 4, 5-more | número de puertas
+persons   | character  | 2, 4, more | capacidad de personas en términos de personas para llevar
+lug_boot   |character  | small, med, big | tamaño del maletero
+safety  | character  | low, med, high | seguridad estimada del coche
+class  | character  | unacc, acc, good, v-good | aceptabilidad del coche 
+
+Control de valores nulos o vacíos (Na)
+
+En todos los modelos, la existencia de registros con falta de datos o NA, anula el valor de dicha evidencia en el modelo de entrenamiento. Vamos a ver si nuestro conjunto de datos tiene falta de información:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+colSums(is.na(car_data))
+```
+
+No se han observado datos faltantes para ninguna de las variables. Disponemos por tanto de un data frame formado por variables categóricas sin valores nulos. Ésto facilitará el análisis de nuestro trabajo.
+
+**ANÁLISIS VISUAL DE LOS DATOS**
+
+Para un conocimiento en profundidad los datos utilizaremos herramientas de visualización con las que describiremos la relación entre la clase del vehículo y cada uno de los parámetros que se usan para su evaluación. 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+grid.newpage()
+p1<-ggplot(car_data,aes(x=class,fill=buying))+geom_histogram(stat="count")+labs(title="Clase Vs Precio compra",y="Precio",x="Clase")+ scale_fill_brewer(palette="Set1")
+p2<-ggplot(car_data,aes(x=class,fill=maint))+geom_histogram(stat="count")+labs(title="Clase Vs Mantenimiento",y="Mantenimiento",x="Clase")+ scale_fill_brewer(palette="Set1")
+p3<-ggplot(car_data,aes(x=class,fill=doors))+geom_histogram(stat="count")+labs(title="Clase Vs N°Puertas",y="Puertas",x="Clase") + scale_fill_brewer(palette="Set1")
+p4<-ggplot(car_data,aes(x=class,fill=persons))+geom_histogram(stat="count")+labs(title="Clase Vs Personas",y="Personas",x="Clase") + scale_fill_brewer(palette="Set1")
+p5<-ggplot(car_data,aes(x=class,fill=lug_boot))+geom_histogram(stat="count")+labs(title="Clase Vs Tamaño del maletero",y="Maletero",x="Clase") + scale_fill_brewer(palette="Set1")
+p6<-ggplot(car_data,aes(x=class,fill=safety))+geom_histogram(stat="count")+labs(title="Clase Vs Seguridad",y="Seguridad",x="Clase") + scale_fill_brewer(palette="Set1")
+grid.arrange(p1,p2,p3,p4,p5,p6,ncol=2)
+```
+
+Otra forma de ver la relación entre la clase del vehículo y uno de los parámetros que lo evalúan es mediante tablas de contingencia. El resultado de los gráficos y las tablas se explica más adelante.
+
+CLASE VS PRECIO DE COMPRA
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+tabla1 <- table(buying,class)
+tabla1_p <- prop.table(tabla1, margin = 1)
+tabla1
+tabla1_p
+```
+CLASE VS COSTE MANTENIMIENTO
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+tabla2 <- table(maint, class)
+tabla2_p <- prop.table(tabla2, margin = 1)
+tabla2
+tabla2_p
+```
+CLASE VS N°PUERTAS
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+tabla3 <- table(doors, class)
+tabla3_p <- prop.table(tabla3, margin = 1)
+tabla3
+tabla3_p
+```
+CLASE VS CAPACIDAD PERSONAS
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+tabla4 <- table(persons, class)
+tabla4_p <- prop.table(tabla4, margin = 1)
+tabla4
+tabla4_p
+```
+CLASE VS TAMAÑO MALETERO
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+tabla5 <- table(lug_boot, class)
+tabla5_p <- prop.table(tabla5, margin = 1)
+tabla5
+tabla5_p
+```
+CLASE VS SEGURIDAD
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+tabla6 <- table(safety,class)
+tabla6_p <- prop.table(tabla6, margin = 1)
+tabla6
+tabla6_p
+```
+Analizando los resultados obtenidos de forma gráfica y de forma tabular podemos establecer las siguientes afirmaciones en cuanto a la forma de relacionarse las variables.
+
+Gráficamente llama la atención que la clase predominante en la evaluación de la aceptabilidad del vehículo es unacc: inaceptable. Veamos como los distintos parámetros influyen para que un coche sea declarado de esa manera. En cuanto al precio de compra vemos que los cuatro valores de precios que tenemos tienen porcentajes similares  en la clase unacc: 75% de los coches con precio alto son inaceptables, 60% de los coches con precio bajo, 62% de precio medio y 83% de los coches cuyo precio es muy alto son clasificados unacc.
+
+Con respecto al coste de mantenimiento vemos que el comportamiento es similar al anterior: 73% de los coches con coste alto son inaceptables, 62% de los coches con coste bajo, 62% de coste medio y 83% de los coches cuyo coste es muy alto son clasificados unacc.
+
+Veamos ahora otros parámetros diferentes no relacionados con el factor económico. En cuanto a la seguridad, los vehículos que han sido declarados inaceptables se dividen así: 48% de los vehículos que tienen seguridad alta, el 100 % de los que tienen seguridad baja y el 62% de los que tienen seguridad media figuran como unacc.
+
+Los otros parámetros que son más frecuentes en la clase unacc son maleteros de tamaño pequeño y vehículos con capacidad para solo dos personas.
+
+### Preparación de los datos para la aplicación del modelo
+
+El objetivo de la práctica es crear un árbol de decisión que permita analizar la aceptabilidad de cada vehículo. Por lo tanto, la variable por la que clasificaremos es el campo "class". Al ver la cabecera del fichero, vemos que los datos ya podrían estar ordenados por clase. Por si acaso, los desordenaremos para que los conjuntos que usemos para el entrenamiento y test del modelo estén bien "mezclados".
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+head(car_data,10)
+```
+
+Este nuevo conjunto de datos se almacenará en la variable "car_des".
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+set.seed(1)
+car_des <- car_data[sample(nrow(car_data)),]
+```
+
+Como se acaba de comentar, para generar el árbol de clasificación tenemos que dividir el conjunto de datos de origen en dos subconjuntos: uno de ellos nos servirá para el entrenamiento (train) del modelo y el otro para la comprobación -a posteriori- (test). Con este sistema de división de la muestra inicial de datos evitamos el overfitting tan preocupante en los modelos.
+
+Esta división se puede hacer a mano, o con la ayuda de algunos paquetes que llevan funciones incorporadas para las particiones de datos. En este caso, dividiremos manualmente la tabla en dos conjuntos con una proporción del 2/3 para el conjunto de entrenamiento y 1/3 para el conjunto de prueba, que es una de las particiones más usadas.
+
+La variable por la que clasificaremos es el campo "class", que está en la séptima columna.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+set.seed(666)
+y <- car_des[,7] 
+X <- car_des[,1:6] 
+```
+
+Dividimos en el conjunto de entrenamiento y test según se ha explicado (2/3 de 1728 observaciones es 1152 que corresponderán al subconjunto de entrenamiento y el tercio restante para test):
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+trainX <- X[1:1152,]
+trainy <- y[1:1152]
+testX <- X[1153:1728,]
+testy <- y[1153:1728]
+```
+
+
+### Creación del modelo de clasificación usando el algoritmo C5.0
+
+C5.0 es un algoritmo cuyo objetivo es crear árboles de clasificación. El algoritmo original fue desarrollado por Ross Quinlan. Es una versión mejorada de C4.5, que se basa en ID3. 
+
+Entre sus características, destacan la capacidad para generar árboles de decisión simples, modelos basados en reglas, ensembles basados en boosting y asignación de distintos pesos a los errores. Este algoritmo ha resultado de una gran utilidad a la hora de crear modelos de clasificación y todas sus capacidades son accesibles mediante el paquete `C50`. Aunque comparte muchas características con los algoritmos de random forest y gradient boosting, cabe tener en cuenta algunas peculiaridades:
+
+* La medida de pureza empleada para las divisiones del árbol es la entropía.
+* El podado de los árboles se realiza por defecto, y el método empleado se conoce como pessimistic pruning. 
+* Los árboles se pueden convertir en modelos basados en reglas.
+* Emplea un algoritmo de boosting más próximo a AdaBoost que a Gradient Boosting.
+* Por defecto, el algoritmo de boosting se detiene si la incorporación de nuevos modelos no aporta un mínimo de mejora.
+* Incorpora una estrategia para la selección de predictores (Winnowing) previo ajuste del modelo.
+* Permite asignar diferente peso a cada tipo de error.
+
+Se procede a crear un modelo de clasificación basado en un único árbol C5.0 que necesita que las variables estén almacenadas en forma de factor.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+trainy = as.factor(trainy)
+model <- C50::C5.0(trainX, trainy,rules=TRUE )
+```
+
+El summary de un modelo C50 muestra información detallada sobre el número de observaciones de entrenamiento, el número de predictores empleados, las divisiones del árbol, los errores de entrenamiento y la importancia de los predictores:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+summary(model)
+```
+
+En este caso, solo 13 de los 1152 coches han sido clasificados incorrectamente, el error de entrenamiento es del 1.1%. La clase predominante es "unacc" que significa que  la evaluación de la aceptabilidad del auto es inaceptable. Vemos que se han generado 24 reglas de clasificación. El orden de las reglas no importa, por lo que el valor predeterminado es agruparlas por clase y subordenarlas por confianza.
+
+Cada regla consta de:
+
+* **Un número de regla:** esto es bastante arbitrario y solo sirve para identificar la regla.
+* **Estadísticas (n, lift x) o (n / m, lift x)** que resumen el desempeño de la regla. De manera similar a una hoja, n es el número de casos de entrenamiento cubiertos por la regla y m, si aparece, muestra cuántos de ellos no pertenecen a la clase predicha por la regla. La precisión de la regla se estima mediante la relación de Laplace (n-m + 1) / (n + 2). Lift x es el resultado de dividir la precisión estimada de la regla por la frecuencia relativa de la clase predicha en el conjunto de entrenamiento.
+* Una o más **condiciones que deben cumplirse** todas para que la regla sea aplicable.
+* Una **clase predicha** por la regla.
+* **Un valor entre 0 y 1 que indica la confianza con la que se realiza esta predicción.** 
+
+En este caso como son 24 reglas no explicaremos cada una al detalle, explicaremos las cinco primeras y de forma análoga se pueden entender las restantes:
+
+- Regla 1: Si el precio de compra es ‘high’ o ‘vhigh’, el mantenimiento es ‘med’ o ‘low’, personas es ‘4' o'more’, el tamaño del maletero grande y la seguridad ‘high’ o ‘med’, la clase es ACC con un 98.1% de validez. El vehículo es aceptable.
+
+- Regla 2: Si el precio de compra es ‘high’ o ‘vhigh’, el mantenimiento es ‘med’ o ‘low’, el n° de puertas es ‘3’ o ‘4’ o ‘5more’, personas es ‘4’ o ‘more’ y la seguridad es ‘high’, la clase es ACC con un 98.1% de validez. El vehículo es aceptable.
+
+- Regla 3: Si el precio de compra es ‘high’ o ‘vhigh’, el mantenimiento es ‘med’ o ‘low’, el n° de puertas es ‘4’ o ‘5more’, personas es ‘4’ o ‘more’, el maletero es ‘big’ o ‘med’ y la seguridad es ‘high’ o ‘med’, la clase es ACC con un 97.9% de validez. El vehículo es aceptable.
+
+- Regla 4: Si el precio de compra es ‘high’ o ‘vhigh’, el mantenimiento es ‘med’ o ‘low’, personas es ‘4’ y la seguridad es ‘high’, la clase es ACC con un 97.5% de validez. El vehículo es aceptable.
+
+- Regla 5: Si el precio de compra es ‘high’ o ‘vhigh’, el mantenimiento es ‘med’ o ‘low’, personas es ‘more’, el maletero es ‘big’ o ‘med’ y la seguridad es ‘high’ o ‘med’, la clase es ACC con un 93.6% de validez. El vehículo es aceptable.
+
+A continuación mostramos el árbol obtenido.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+model <- C50::C5.0(trainX, trainy)
+#plot(model)
+myTree2 <- C50:::as.party.C5.0(model)
+plot(myTree2, type = c("extended"), gp = gpar(fontsize = 6),drop_terminal = TRUE, tnex=1,ip_args=list(id = FALSE,gp = gpar()),tp_args=list(id = FALSE)) 
+
+```
+
+Dada la facilidad con la que un árbol se complica, en un estudio más extenso podríamos cortar, limitar y optimizar el tamaño y la forma del árbol de clasificación. 
+
+### Validación del modelo
+
+Una vez ajustado el modelo, se evalúa su capacidad predictiva con el subconjunto de test antes creado. Se pueden hacer predicciones ingresando el objeto del modelo en la función `predict()`, junto con los datos de los que queremos hacer predicciones. El argumento type = "class" especifica que queremos las etiquetas de clase reales como salida, en lugar de la probabilidad de que la etiqueta de clase sea una etiqueta u otra.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+predicted_model <- predict(model, testX, type="class" )
+```
+
+Una vez tenemos el modelo, podemos comprobar su precisión:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(predicted_model == testy) / length(predicted_model)))
+```
+Cuando hay pocas clases, la calidad de la predicción se puede analizar mediante una matriz de confusión que identifica los tipos de errores cometidos:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+mat_conf<-table(Real=testy,Predicciones=predicted_model)
+mat_conf
+```
+Entonces tenemos que nuestro modelo cuando ha hecho la predicción de clase acc: ha acertado 117 casos pues 117 son reales acc, 5 eran good realmente, 7 eran unacc y 1 era vgood. Cuando ha hecho la predicción de good: lo ha hecho bien para 23 vehículos, 3 eran acc realmente y 1 era vgood. Cuando ha clasificado como unacc ha acertado en el 395 de los casos y cuando lo ha hecho con vgood ha acertado en los 24 casos. Vemos que la clse en la que más ha fallado es acc.
+
+Aunque el resultado del modelo en este punto ya es aceptable se va a probar el método **boosting** para comprobar si realiza mejoras en la clasificación de las clases y la precisión del modelo.
+
+**BOOSTING**
+
+Generamos el modelo mediante la técnica de boosting con 10 iteraciones y revisamos la calidad de como clasifica:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+model_boost10 <- C50::C5.0(trainX, trainy,trials=10)
+predicted_model_2 <- predict(model_boost10, testX, type="class" )
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(predicted_model_2 == testy) / length(predicted_model_2)))
+CrossTable(testy, predicted_model_2,prop.chisq  = FALSE, prop.c = FALSE, prop.r =FALSE,dnn = c('Reality', 'Prediction'))
+```
+
+Los resultados muestran que, mediante boosting, se mejora la capacidad predictiva del modelo.
+
+
+***
+## Conclusiones Ejercicio 1
+***
+* En el ejercicio se utiliza el dataset Car Evaluation, que contiene 1728 registros y 7 variables de tipo categórico de las cuales se hace un resumen detallado en el estudio.
+* Todas las variables son importantes para los clientes a la hora de evaluar si el automóvil se encuentra en un rango aceptable o inaceptable.
+* La seguridad y la capacidad de asientos son dos factores principales para rechazar los autos como inaceptables.
+* El número de puertas del vehículo es la variable menos importante para decidir el valor de clase del automóvil. 
+* Se han creado dos subconjuntos de datos (uno de entrenamiento y otro de test para comprobar los resultados). Éstos han sido obtenidos del dataset original aplicando la proporción 2/3.
+* Mediante el algoritmo C5.0 se ha creado un árbol de clasificación generando 24 reglas y un error del 1.1%
+* Aplicando el modelo de clasificación obtenido mediante C5.0 al subconjunto de datos de test se ha obtenido una precisión del modelo del 97.05%.
+* Posteriormente se ha generado un nuemo modelo mediante boosting. La técnica de boosting aplicada al modelo, mejora su precisión. Se ha obtenido una precisión del 98.09%.
+
+***
+# Referencias Bibliográficas 
+***
+
+**Caihuelas Quiles, R. Casas Roma, J. Gironés Roig, J. Minguillón Alfonso, J**.(2017). *Minería de datos: Modelos y Algoritmos*. Editorial UOC
+
+**Sangüesa i Solé, R**. *Clasificación: árboles de decisión*. PID_00165729. UOC
+
+**Car Evaluation Data Set.** *UCI Machine Learning Repository.* Disponible en:
+https://archive.ics.uci.edu/ml/datasets/car+evaluation
+
+**Amat Rodrigo, J.** (2017).*Árboles de decisión, random forest, gradient boosting y C5.0*. Disponible en: https://www.cienciadedatos.net/documentos/33_arboles_decision_random_forest_gradient_boosting_c50#C50
+
+**Villalba, F.** (2018).*Aprendizaje supervisado en R*. Disponible en: https://fervilber.github.io/Aprendizaje-supervisado-en-R/
+
+**Gowrisankar, JG. Dineshkumar, R.** (2019).*Car Evaluation Data Analysis*. Disponible en: https://rstudio-pubs-static.s3.amazonaws.com/539493_0e5e48d8a64e4f4280cd9d2676383957.html
+
+**Alabaş, M.** (2019).*Car Evaluation Prediction with R*. Disponible en: https://www.kaggle.com/mert34/car-evaluation-prediction-with-r
+
+**Partykit**.*party-plot: Visualization of Trees*. Disponible en: https://rdrr.io/rforge/partykit/man/party-plot.html
+
+**R Documentation.** *C5.0 Decision Trees and Rule-Based Models*.Disponible en: https://www.rdocumentation.org/packages/C50/versions/0.1.3.1
+
+**R Documentation.** *party-plot*.Disponible en: https://www.rdocumentation.org/packages/partykit/versions/0.1-1/topics/party-plot
+
+******
+# Rúbrica
+******
+* 15% Se explica de forma clara la base de datos seleccionada y la razón de su elección.
+* 10% Hay un estudio sobre los datos de los que se parte y los datos son preparados correctamente.
+* 20% Se aplica un árbol de decisión de forma correcta y se obtiene una estimación del error.
+* 5% Se muestra de forma gráfica el árbol obtenido.
+* 10% Se explican las reglas que se obtienen.
+* 10% Se usa el modelo para predecir con muestras no usadas en el entrenamiento y se obtiene una estimación del error.
+* 15% Se prueba otro modelo de árbol o variantes diferentes del C50 obteniendo mejores resultados.	
+* 5% Se presenta el código y es fácilmente reproducible.
+* 10% Se presenta unas conclusiones donde se expone el conocimiento adquirido tras el trabajo realizado.
+

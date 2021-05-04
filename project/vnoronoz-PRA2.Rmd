@@ -1,0 +1,523 @@
+---
+title: 'Minería de datos: PRA2 - Modelado de un juego de datos'
+author: "Autor: **VANESA NAVARRO ORONOZ**"
+date: "Enero 2021"
+output:
+  html_document:
+    highlight: default
+    number_sections: yes
+    theme: cosmo
+    toc: yes
+    toc_depth: 2
+    includes:
+      in_header: 75.584-PEC-header.html
+  word_document: default
+  pdf_document:
+    highlight: zenburn
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+******
+# Introducción
+******
+## Presentación
+Esta práctica cubre de forma transversal la asignatura.
+
+Las Prácticas 1 y 2 de la asignatura se plantean de una forma conjunta de modo que la Práctica 2 será continuación de la 1.
+
+El objetivo global de las dos prácticas consiste en seleccionar uno o varios juegos de datos, realizar las tareas de preparación y análisis exploratorio con el objetivo de disponer de datos listos para aplicar algoritmos de clustering, asociación y clasificación.
+
+## Competencias
+Las competencias que se trabajan en esta prueba son:  
+
+* Uso y aplicación de las TIC en el ámbito académico y profesional.
+* Capacidad para innovar y generar nuevas ideas.
+* Capacidad para evaluar soluciones tecnológicas y elaborar propuestas de proyectos teniendo en cuenta los recursos, las alternativas disponibles y las condiciones de mercado.
+* Conocer las tecnologías de comunicaciones actuales y emergentes así como saberlas aplicar convenientemente para diseñar y desarrollar soluciones basadas en sistemas y tecnologías de la información.
+* Aplicación de las técnicas específicas de ingeniería del software en las diferentes etapas del ciclo de vida de un proyecto.
+* Capacidad para aplicar las técnicas específicas de tratamiento, almacenamiento y administración de datos.
+* Capacidad para proponer y evaluar diferentes alternativas tecnológicas para resolver un problema concreto.
+
+## Objetivos
+La correcta asimilación de todos los aspectos trabajados durante el semestre.  
+En esta práctica abordamos un caso real de minería de datos donde tenemos que poner en juego todos los conceptos trabajados.
+Hay que trabajar todo el ciclo de vida del proyecto. Desde el objetivo del proyecto hasta la implementación del conocimiento encontrado pasando por la preparación, limpieza de los datos, conocimiento de los datos, generación del modelo, interpretación y evaluación.
+
+## Descripción de la PRA a realizar
+
+## Recursos Básicos
+Material docente proporcionado por la UOC. 
+
+## Criterios de valoración
+
+**Ejercicios prácticos** 
+
+Para todas las PRA es necesario documentar en cada apartado del ejercicio práctico que se ha hecho y como se ha hecho.
+
+## Formato y fecha de entrega PRA_1
+El formato de entrega es: usernameestudiant-PRAn.html/doc/docx/odt/pdf/rmd    
+Fecha de entrega: 15/01/2021  
+Se debe entregar la PRA_2 en el buzón de entregas del aula  
+
+## Nota: Propiedad intelectual 
+
+> A menudo es inevitable, al producir una obra multimedia, hacer uso de recursos creados por terceras personas. Es por lo tanto comprensible hacerlo en el marco de una práctica de los estudios de Informática, Multimedia y Telecomunicación de la UOC, siempre y cuando esto se documente claramente y no suponga plagio en la práctica. 
+
+> Por lo tanto, al presentar una práctica que haga uso de recursos ajenos, se debe presentar junto con ella un documento en que se detallen todos ellos, especificando el nombre de cada recurso, su autor, el lugar donde se obtuvo y su estatus legal: si la obra esta protegida por el copyright o se acoge a alguna otra licencia de uso (Creative Commons, licencia GNU, GPL ...). 
+El estudiante deberá asegurarse de que la licencia no impide específicamente su uso en el marco de la práctica. En caso de no encontrar la información correspondiente tendrá que asumir que la obra esta protegida por copyright. 
+
+> Deberéis, además, adjuntar los ficheros originales cuando las obras utilizadas sean digitales, y su código fuente si corresponde.  
+
+******
+# Enunciado
+******
+Como continuación del estudio iniciado en la práctica 1, procedemos en esta práctica 2 a aplicar modelos analíticos sobe el juego de datos seleccionado y preparado en la práctica anterior.
+
+De este modo se pide al estudiante que complete los siguientes pasos:  
+
+1. Aplicar un modelo de generación de reglas a partir de **árboles de decisión**.  
+
+2. Aplicar un modelo **no supervisado** y basado en el concepto de **distancia**, sobre el juego de datos.   
+
+3. Aplica de nuevo el modelo anterior, pero usando una **métrica distinta** y compara los resultados.
+
+4. Aplicar un **modelo supervisado** sobre el juego de datos **sin** haber aplicado previamente **PCA/SVD**.
+
+5. Aplicar un **modelo supervisado** sobre el juego de datos habiendo aplicado previamente **PCA/SVD**.
+
+6. ¿Ha habido mejora en capacidad predictiva, tras aplicar PCA/SVD? ¿A qué crees que es debido?.   
+
+***
+# Resolución: Estudio sobre absentismo en el trabajo - continuación PRA1
+***
+Como ya se ha comentado en otros ejercicios, la minería de datos no es un proceso que se realice en una sola
+fase. Generalmente nos enfrentamos a proyectos complejos con multitud de tareas que deben seguir unas pautas de desarrollo. La metodología CRISP-DM es la más utilizada en el sector.
+
+Está basada en la práctica y experiencia real de analistas de minería de datos que han contribuido activamente al desarrollo de la misma. Hay dos aspectos clave en esta metodología: la adopción de la estrategia de calidad total y la visión de un proyecto de minería de datos como una secuencia de fases.
+
+El compromiso con la calidad en el mundo de la gestión de proyectos pasa por seguir de forma iterativa lo que se conoce como ciclo PDCA: Planificar (Plan) - Hacer (Do) - Verificar (Check) - Actuar (Act).
+Un aspecto a destacar es que la iteración y revisión de fases y procesos se remarca como un aspecto clave si se quiere ejecutar un proyecto de calidad. Las fases que propone la metodología CRISP-DM son: comprensión del negocio, comprensión de los datos, preparación de los datos, modelado y evaluación del modelo.
+
+En la primera parte de la práctica PRA1, se vieron estas fases:
+
+* Comprensión de los datos y su aportación dentro del área de estudio.
+* Preparación de los datos: se realizaron tareas de limpieza sobre los datos y se construyó un juego de datos apto para la aplicación de algoritmos.
+
+En esta segunda parte práctica, se realizará la fase de **Modelado**.
+
+El objetivo de esta fase es el de disponer de un modelo que nos ayude a alcanzar los objetivos de la minería de datos *(descubrir conocimiento a través de los datos)* y los objetivos de negocio establecidos en el proyecto *(gestionar los recursos humanos para la realización de análisis, desarrollo de políticas y, eventualmente, en luchar contra el absentismo y sus efectos)*.
+
+Podemos entender el modelo como la **habilidad de aplicar una técnica a un juego de datos con el fin de predecir una variable objetivo o encontrar un patrón desconocido**. En este caso práctico se aplicarán diferentes modelos supervisados y no supervisados sobre el juego de datos inicial que nos ayuden a predecir si un trabajador es susceptible de absentismo laboral. Esta fase es iterativa, igual que su predecesora y su antecesora, por lo que que si no se llegan a los objetivos marcados es necesario repetir el proceso.
+
+En esta fase: 
+* Seleccionaremos las técnicas de modelado más adecuadas para nuestro juego de datos y nuestros objetivos. 
+* Construiremos un modelo a partir de la aplicación de las técnicas seleccionadas sobre el juego de datos. 
+* Ajustaremos el modelo evaluando su fiabilidad y su impacto en los objetivos anteriormente establecidos.
+
+También se realizará la **Evaluación** de los modelos generados donde evaluaremos el grado de acercamiento a los objetivos de negocio *(predicción del absentismo)* y en la búsqueda, si las hay, de razones de negocio por las cuales el modelo es ineficiente. Se establecerán los siguientes pasos a tomar, tanto si se trata de repetir fases anteriores como si se trata de abrir nuevas líneas de investigación.
+
+En prime lugar, cargamos los datos obtenidos en la PRA1 y guardados en local para poder continuar el trabajo con ellos.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Load workspace back to RStudio
+load("C:/Users/ProBook/all_data.RData")
+```
+
+***
+## Parte I: Modelo de generación de reglas a partir de árboles de decisión
+***
+Usamos como partida los datos normalizados de la PRA1:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+head(df,10)
+```
+
+Para esta primera parte, vamos a construir un árbol de decisión para clasificación con el algoritmo CART. En el CART, el procedimiento de construcción del árbol pasa por considerar en cada momento el hecho de encontrar el atributo que actúa como mejor separador o punto de corte.
+
+El algoritmo de los modelos de árbol de decisión funciona dividiendo repetidamente los datos en múltiples subespacios, de modo que los resultados en cada subespacio final sean lo más homogéneos posible. Este enfoque se denomina técnicamente partición recursiva.
+
+El resultado producido consta de un conjunto de reglas que se utilizan para predecir la variable de resultado, que puede ser una variable continua, para árboles de regresión; una variable categórica, para árboles de clasificación. En nuestro caso tenemos la columna Absentismo_horas_rango que clasifica el tipo de absentismo de los trabajadores en las siguientes categorías: Nada, Horas, Días o Semanas. Esta será nuestra variable objetivo para los ejercicios de clasificación y predicción.
+
+Las reglas de decisión generadas por el modelo predictivo CART generalmente se visualizan como un árbol binario, que es lo que generaremos en este caso.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(caret)
+library(rpart)
+# Hacemos copia de los datos
+dataset_tree <- df
+```
+
+Aunque en el ejercicio solo nos pide generar las reglas, no se habla de hacer predicciones con el modelo, de igual manera dividiremos la muestra del conjunto de datos en dos subconjuntos: uno de entrenamiento y otro de test para validar las reglas generadas. En este caso, dividiremos manualmente la tabla en dos conjuntos con una proporción del 2/3 para el conjunto de entrenamiento y 1/3 para el conjunto de prueba, que es una de las particiones más usadas.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+N=dim(dataset_tree)[1]
+all=seq(1,N)
+
+# seleccionar 2/3 al azar
+train=sort(sample(N,N*2/3.0))
+test=setdiff(all,train)
+
+xtrain_1=dataset_tree[train,]
+xtest_1=dataset_tree[test,]
+```
+
+Revisamos que haya una representación parecida variable clasificadora en el conjunto de entreno y test
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+prop.table(table(xtrain_1$Absentismo_horas_rango))
+prop.table(table(xtest_1$Absentismo_horas_rango))
+```
+Efectivamente tenemos una representación parecida de las clases en ambos subconjuntos.
+
+Ahora, crearemos un árbol completamente desarrollado que muestre todas las variables predictoras en el conjunto de datos.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+model1 <- rpart(Absentismo_horas_rango ~., data = xtrain_1[,c(2:19,21)], method = "class")
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(rpart.plot)
+par(xpd = NA) 
+rpart.plot(model1)
+```
+
+El gráfico muestra las diferentes reglas de división posibles que se pueden usar para predecir de manera efectiva el tipo de resultado (aquí, tipo de absentismo). Las diferentes reglas en el árbol se pueden ver de la siguiente manera:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print(model1, digits = 2)
+```
+
+Las reglas aqui las podemos interpretar de la suiguiente manera:
+Según las respuestas (si o no) a las condiciones que especifica el modelo, va clasificando los grupos.
+Primera condición: 
+  Razon_ausencia>=22 -> Hay 269 casos y su absentismo es de clase horas
+  Razon_ausencia<22  -> Hay 224 casos y su absentismo es de clase dias
+
+Para estas dos opciones va preguntan otras condiciones y así decidiendo qué elemento pertenece a cada grupo.
+
+Estas reglas se producen dividiendo repetidamente las variables predictoras, comenzando con la variable que tiene la mayor asociación con la variable de respuesta. En el caso de estudio, la variable Razon de ausencia es la que más aociación tiene con el tiempo de absentismo. El proceso continúa hasta que se cumplen algunos criterios de parada predeterminados.
+
+El árbol resultante está compuesto por nodos de decisión, ramas y nodos hoja. El árbol se coloca de arriba hacia abajo, por lo que la raíz está en la parte superior y las hojas, lo que indica que el resultado se coloca en la parte inferior. Cada nodo de decisión corresponde a una única variable predictora de entrada y un corte dividido en esa variable. Los nodos de hoja del árbol son la variable de resultado que se utiliza para hacer predicciones.
+
+El árbol crece desde la parte superior (raíz), en cada nodo el algoritmo decide el mejor corte dividido que resulta en la mayor pureza (u homogeneidad) en cada subpartición.
+
+El árbol dejará de crecer según los siguientes tres criterios (Zhang 2016):
+
+- todos los nodos de hoja son puros con una sola clase;
+- hay un número mínimo predeterminado de observaciones de entrenamiento que no se pueden asignar a cada nodo hoja con ningún método de división
+- El número de observaciones en el nodo hoja alcanza el mínimo preestablecido.
+
+El summary del modelo muestra información detallada sobre el número de observaciones de entrenamiento, el número de predictores empleados, las divisiones del árbol, los errores de entrenamiento y la importancia de los predictores. En este caso se pude observar, en cada nodo donde decide cuántos elementos van hacia izquierda/derecha, y el uso de las variables que está haciendo.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+summary(model1)
+```
+
+Un árbol completamente desarrollado se ajustará en exceso a los datos de entrenamiento y el modelo resultante podría no ser eficaz para predecir el resultado de nuevos datos de prueba. Se utilizan técnicas, como la poda, para controlar este problema. Veamos si este modelo es eficaz en las predicciones:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+predicted_data_1 <- predict(model1, xtest_1, type = "class")
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(gmodels)
+CrossTable(xtest_1$Absentismo_horas_rango,predicted_data_1,prop.chisq=FALSE,prop.c=FALSE,prop.r=FALSE,dnn = c('Absentismo actual','Absentismo predicho'))
+```
+
+Una vez tenemos el modelo, podemos comprobar su precisión:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(predicted_data_1 == xtest_1$Absentismo_horas_rango) / length(predicted_data_1)))
+```
+
+Para ser la primera iteración, tendríamos una precisión del 79.35%. Compararemos este porcentaje con el obtenido después de realizar la poda del árbol original o mediante análisis de componentes principales como veremos más adelante.
+
+Ahora podemos hacer una prueba rápida de **pruning o poda del árbol**:
+
+Nuestro objetivo aquí es ver si un subárbol más pequeño puede darnos resultados comparables a los del árbol completamente desarrollado. Si es así, deberíamos optar por un árbol más simple porque reduce la probabilidad de sobreajuste.
+
+Para validar el modelo usamos las funciones printcp y plotcp. "CP" son las siglas de Complexity Parameter of the tree.
+- printcp: Esta función proporciona las podas óptimas basadas en el valor cp.
+- plotcp: Esta función devuelve el valor de cp óptimo asociado con el error mínimo.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+printcp(model1)
+plotcp(model1)
+```
+
+Plotcp () proporciona una representación gráfica del resumen de errores con validación cruzada. Los valores de cp se grafican contra la media geométrica para representar la desviación hasta que se alcanza el valor mínimo.
+
+Poda del árbol para crear un árbol de decisiones óptimo:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+model1_pruned<- prune(model1, cp= model1$cptable[which.min(model1$cptable[,"xerror"]),"CP"])
+rpart.plot(model1_pruned)
+```
+
+Ya podemos ver que la poda ha sido efectiva y tenemos menos ramas en el modelo. 
+Las reglas las podemos ver aquí:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print(model1_pruned, digits = 2)
+```
+O con el summary de modelo:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+summary(model1_pruned)
+```
+Ahora hacemos las predicciones con el árbol podado y sacamos el porcentaje de precisión:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+predicted_data_2 <- predict(model1_pruned, xtest_1, type = "class")
+CrossTable(xtest_1$Absentismo_horas_rango,predicted_data_2,prop.chisq=FALSE,prop.c=FALSE,prop.r=FALSE,dnn = c('Absentismo actual','Absentismo predicho'))
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(predicted_data_2 == xtest_1$Absentismo_horas_rango) / length(predicted_data_2)))
+```
+
+Vemos que el resultado es muy similar al anterior y sin embargo, tenemos un árbol mucho más simplificado con muchos menos nodos y reglas, lo que supone más velocidad y menos tiempo de procesado. Vemos que la variable Razon_Ausencia es la que más determina el tiempo que un empleado está ausente, cosa que se confirmará con los otros modelos.
+
+***
+## Parte II: Modelo no supervisado y basado en el concepto de distancia
+***
+
+Los métodos no supervisados son algoritmos que basan su proceso de entrenamiento en un juego de datos sin etiquetas o clases previamente definidas. Es decir, a priori no se conoce ningún valor objetivo o de clase, ya sea categórico o numérico. El aprendizaje no supervisado está dedicado a las tareas de agrupamiento, también llamadas clustering o segmentación donde su objetivo es encontrar grupos similares en los juegos de datos.
+
+Existen dos grupos principales de métodos o algoritmos de agrupamiento: 
+  1. Los métodos jerárquicos, que producen una organización jerárquica de las instancias que forman el     conjunto de datos, posibilitando de esta forma distintos niveles de agrupación. 
+  2. Los métodos particionales o no jerárquicos, que generan grupos de instancias que no responden a ningún tipo de organización jerárquica.
+
+Sabemos que tenemos nuestros divididos en cuatro categorías pero vamos a usar algunas herramientas para ver cuántos son los grupos que se deberían crear.
+
+**Determinación de clústeres óptimos**
+
+Para determinar y visualizar el número óptimo de clústeres se va a usar el paquete optCluster, que realiza la validación estadística y / o biológica de los resultados de la agrupación y determina el algoritmo de agrupación óptimo y el número de agrupaciones mediante la agregación de rangos.
+
+El proceso a seguir para aplicar cada algoritmo sobre los datos es el siguiente. En primer lugar se utilizará la funcióno ptCluster, indicando un intervalo de valores para K (elegiremos de 2 a 6 clusteres), con lo que se obtendrá una lista con los valores de K ordenados por su eficiencia, de mayor a menor. 
+
+Para mantener una estabilidad en los procesos se indicará una semilla fija (123) para cada vez que se utilice la función optCluster.Para determinar la eficiencia se utilizarán todos los medidores de internalidad, y estabilidad.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+# Hacemos copia de los datos sin la variable que los clasifica
+input <- df[,2:19]
+```
+
+Se van a evaluar los métodos de clustering: hierarchical, kmeans, pam, agnes, diana, clara y model.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(optCluster)
+optresult <- optCluster(input, 2:6, seed = 123,
+                  clMethods  = c("hierarchical", "kmeans", "pam", "agnes", "diana", "clara", "model"),
+                  validation = c("stability", "internal")
+                )
+summary(optresult)
+```
+
+
+El resultado de este análisis nos dice que el mejor método entre todos es el hierarchical con 4 clústers.
+
+Entonces, en este primer caso, aplicaremos la funcion hclust() con la métrica de distancia euclídea para k=4:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(factoextra)
+res.hc <- eclust(input, "hclust",  hc_metric = "euclidean", k= 4,  hc_method = "ward.D2", graph = FALSE, seed = 123)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+fviz_dend(res.hc, k = 4, palette = "jco",rect = TRUE, rect_border = "jco", cex = 0.3, rect_fill = TRUE) + labs(title = "Herarchical clustering",
+       subtitle = "Distancia euclídea, Ward D2, K=4")
+```
+
+Si queremos acercarnos a las ramas para ver qué trabajador (ID) corresponde a cada una podemos hacerlo así:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+fviz_dend(res.hc, xlim = c(1, 20), ylim = c(0, 8))
+```
+
+
+Una vez seleccionado el número adecuado de clusters y aplicado el algoritmo de clustering pertinente se tiene que evaluar la calidad de los de los mismos, de lo contrario, podrían derivarse conclusiones de agrupación que no se corresponden con la realidad. En este caso vamos a usar la validacion interna para evaluar la calidad del proceso:
+
+* **Validación interna de los clusters:** Emplea únicamente información interna del proceso de clustering para evaluar la bondad de las agrupaciones generadas. Se trata de un proceso totalmente unsupervised ya que no se incluye ningún tipo de información que no estuviese ya incluida en el clustering.
+
+Algunos de los índices más frecuentemente empleados para la validación interna de clusters combinan las medidas de homogeneidad y distancia entre los clusteres, dos de ellos son: el silhouette width y el índice Dunn. Aplicaremos en el ejercicio el silhouette width.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+res.hc <- eclust(input, "hclust", k = 4, graph = FALSE)
+fviz_silhouette(res.hc, print.summary = TRUE, palette = "jco", ggtheme = theme_classic())
+```
+
+El valor del  silhouette width puede estar entre -1 y 1, siendo valores altos un indicativo de que la observación se ha asignado al cluster correcto. Cuando su valor es próximo a cero significa que la observación se encuentra en un punto intermedio entre dos clusters. Valores negativos apuntan a una posible asignación incorrecta de la observación, que es lo que pasa en algunos casos, sobre todo del grupo 4.
+
+En este caso los cuatros grupos están medianamente bien agrupados, habiendo en algunos casos algunos valores negativos, como ya hemos dicho que podrian corresponderse a otro grupo.
+
+***
+## Parte III: Modelo no supervisado aplicando una métrica distinta
+***
+
+Repetiremos el mismo proceso descrito en el apartado anterior pero cambiaremos la métrica de distancia euclidea a minkowski y el metodo a completo. Se mantienen los clusteres en 4:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+res.hc_2 <- eclust(input, "hclust",  hc_metric = "minkowski", k= 4,  hc_method = "complete", graph = FALSE, seed = 123)
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+fviz_dend(res.hc_2, k = 4, palette = "jco",rect = TRUE, rect_border = "jco", cex = 0.3, rect_fill = TRUE) + labs(title = "Herarchical clustering",
+       subtitle = "Minkowski, Complete, K=4")
+```
+
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+fviz_silhouette(res.hc_2, print.summary = TRUE, palette = "jco", ggtheme = theme_classic())
+```
+
+Aplicando una métrica y método diferentes vemos el resultado tan diferente que se obtiene en el tamaño de los clusteres. En este caso vemos que el clúster 3 está con un indice cercano a 0, lo que significa que está entre dos grupos. Tenemos un grupo muy mayoritario, en su mayoría bien agrupado y otros dos medianamente agrupados.
+
+Los resultados de las agrupaciones pueden ser debidos a que de entrada habíamos agrupado nuestros datos en cuatro categorías: nada, horas, días y semanas. Y puede ser que entre las clases no haya muchas diferencias marcadas, al menos que pueda diferenciar el modelo. La discretización se hizo de forma que desde 8 hasta 40 horas el ausentismo era de tipos días y mayor a 40 de tipo semanas. En base a lo que estamos observando en los resultados de los modelos puede ser que si se modifica esa clasificación se puedan mejorar los resultados.
+
+***
+## Parte IV: Modelo Supervisado sin aplicar previamente PCA/SVD
+***
+Dividimos el conjuntos de estudio en dos subconjuntos, uno de entrenamiento y el otro para test. En esta parte se va a aplicar un modelo C.50.
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+x <- df
+N=dim(x)[1]
+all=seq(1,N)
+
+# seleccionar 2/3 al azar
+train=sort(sample(N,N*2/3.0))
+test=setdiff(all,train)
+set.seed(123)
+xtrain=x[train,]
+xtest=x[test,]
+```
+
+Revisamos que haya una representación parecida de la variable clasificadora en el conjunto de entreno y test
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+prop.table(table(xtrain$Absentismo_horas_rango))
+prop.table(table(xtest$Absentismo_horas_rango))
+```
+
+Creamos un primer árbol usando todos los parámetros por defecto
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+library(C50)
+model1 <- C50::C5.0(xtrain[,c(2:19)],as.factor(xtrain$Absentismo_horas_rango), rules=TRUE)
+model1
+summary(model1)
+```
+
+En este caso, el error de entrenamiento es del 11.6%. De los 493 casos 57 no se han clasificado adecuadamente. Vemos que se han generado 17 reglas de clasificación. Las variables más usadas son fallo disciplinario y razon ausencia.
+
+Una de las opciones para ver otro comportamiento del modelo es quitar la variable fallo disciplinario del análisis.
+
+Evaluamos el árbol creado mediante la matriz de confusión para cada subconjunto
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+Absentismo_pred <- predict(model1, xtest)
+CrossTable(xtest$Absentismo_horas_rango,Absentismo_pred,prop.chisq=FALSE,prop.c=FALSE,prop.r=FALSE,dnn = c('Absentismo actual','Absentismo predicho'))
+```
+
+Una vez tenemos el modelo, podemos comprobar su precisión:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(Absentismo_pred == xtest$Absentismo_horas_rango) / length(Absentismo_pred)))
+```
+
+***
+## Parte V: Modelo Supervisado aplicando previamente PCA/SVD
+***
+
+Haremos el mismo proceso, solo que antes al conjunto de datos le aplicaremos un análisis de componenetes principales (PCA).
+
+El objetivo del PCA es la reducción de dimensionalidad (variables), perdiendo la menor cantidad de información (varianza) posible: cuando contamos con un gran número de variables cuantitativas posiblemente correlacionadas (indicativo de existencia de información redundante), PCA permite reducirlas a un número menor de variables transformadas (componentes principales) que expliquen gran parte de la variabilidad en los datos.
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+dataset_pca <- df
+set.seed(123)
+clasif_absentismo <- dataset_pca[,21] 
+var_Absentismo <- dataset_pca[,2:19] 
+
+pca_abs <- princomp(var_Absentismo)
+```
+
+Para determinar el número de componentes principales que se deben retener después del análisis PCA podemos observar un gráfico Scree, que es el gráfico de valores propios ordenados de mayor a menor:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+fviz_eig(pca_abs,addlabels=T)
+```
+
+En este caso el componente 1 explica casi el 80% de la información. Reteniendo ese componente estaríamos representando casi todo el conjunto de datos. 
+
+Ahora veremos la contribución de cada una de las variables a los componentes:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+var <- get_pca_var(pca_abs)
+head(var$contrib)
+```
+
+Para el componente 1 (Dim.1), que recordemos es el que representa el 78.9% de nuestros datos, la variable que contribuye casi al total es la Razon_ausencia. ¿Qué quiere decir ésto? Que nuestra variable objetivo Absentismo_rango_horas, se explica casi en su totalidad con la variable Razon_ausencia, y que el aporte del resto de variables es mínima.
+
+Entonces aplicaremos ahora el algoritmo con nuestra variables principal y el componente calculado:
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+xtrain$C1=predict(pca_abs,xtrain[,2:21])[,1]
+xtest$C1=predict(pca_abs,xtest[,2:21])[,1]
+```
+
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+model2 <- C50::C5.0(xtrain[,c(2,22)],as.factor(xtrain$Absentismo_horas_rango), rules=TRUE)
+model22 <- C50::C5.0(xtrain[,c(2,22)],as.factor(xtrain$Absentismo_horas_rango))
+summary(model2)
+```
+
+En ese caso se han generado 5 reglas que solo contempla la variable razon ausencia. 
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+options(repr.plot.width=4, repr.plot.height=3)
+plot(model22)
+```
+
+Usamos el modelo para predecir valores:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+Absentismo_pred2 <- predict(model2, xtest)
+CrossTable(xtest$Absentismo_horas_rango,Absentismo_pred2,prop.chisq=FALSE,prop.c=FALSE,prop.r=FALSE,dnn = c('Absentismo actual','Absentismo predicho'))
+```
+Y calculamos su precisión:
+```{r echo=TRUE, message=FALSE, warning=FALSE}
+print(sprintf("La precisión del árbol es: %.4f %%",100*sum(Absentismo_pred2 == xtest$Absentismo_horas_rango) / length(Absentismo_pred2)))
+```
+
+***
+## Parte VI: Comparación modelos obtenidos
+***
+
+* Si comparamos los resultados, vemos que hemos mejorado la precisión del modelo haciendo el cálculo sólo con dos variables, y no con 19 como teníamos en el primer ejemplo. Para el primer modelo tenemos una precisión del 75.70% y para el segundo 79.35%.
+* Este último análisis viene a confirmar lo que ya se adelantaba en el desarrollo de la práctica, que la variable que determinaba nuestra variable objetivo era la razón de la ausencia, siendo las otras prácticamente marginales.
+* La mejora de los resultados en el segundo caso, se debe a algo que ya hemos explicado durante el análisis de PCA; cómo el primer componente del PCA explicaba el 80% de la información del conjunto de datos, y este componente estaba al 99.7% contribuido por una sola variable, al realizar el modelo solo con las partes significantes, nos quitamos de errores residuales que puedan aportar las otras variables.
+* El trabajo no acabaría aqui, como parte de la metodología CRISP-DM, que ya hemos explicado antes que es iterativa, se podría darle una vuelta más al preprocesado de datos, en concreto a las tareas de discretización y normalización para después volver a aplicar los modelos y ver si mejora su precisión.
+
+***
+# Referencias Bibliográficas 
+***
+
+**Caihuelas Quiles, R. Casas Roma, J. Gironés Roig, J. Minguillón Alfonso, J**.(2017). *Minería de datos: Modelos y Algoritmos*. Editorial UOC
+
+**Sangüesa i Solé, R**. *Preparación de datos*. PID_00165728. UOC
+
+**Sangüesa i Solé, R**. *Clasificación: árboles de decisión*. PID_00165729. UOC
+
+**Sangüesa i Solé, R**. *Agregación (clustering)*. PID_00165731. UOC
+
+**Absenteeism at work Data Set.** Disponible en:
+https://archive.ics.uci.edu/ml/datasets/Absenteeism+at+work#
+
+**Shruti Johari, Nithya Mathivanan, Aby Koshy, Richy Varghese.**(2019). *Prediction of Absenteeism At Work* Disponible en: https://rpubs.com/rvarghese9/ANLY530_Project
+
+
+******
+# Rúbrica
+******
+* 15%. Se generan reglas y se comentan e interpretan las más significativas. Adicionalmente se genera matriz de confusión para medir la capacidad predictiva del algoritmo.  
+* 15%. Se genera modelo no supervisado, se muestran y comentan medidas de calidad del modelo generado y se comentan las conclusiones.  
+* 20%. Se genera modelo no supervisado con métrica de distancia distinta al anterior. Se muestran y comentan medidas de calidad del modelo generado y se comentan las conclusiones. Adicionalmente se comparan los dos modelos no supervisados con métricas de distancia distinta.  
+* 15%. Se genera un modelo supervisado sin PCA/SVD previo, se muestran y comentan medidas de calidad del modelo generado y se comenta extensamente el conocimiento extraído del modelo.  
+* 15%. Se genera un modelo supervisado con PCA/SVD previo, se muestran y comentan medidas de calidad del modelo generado y se comenta extensamente el conocimiento extraído del modelo.    
+* 20%. Se compara la capacidad predictiva de los dos modelos supervisados y se comenta la diferencia de rendimiento en base al efecto PCA/SVD.  
+
+
+******
+# Recursos de programación
+******
+* Incluimos en este apartado una lista de recursos de programación para minería de datos donde podréis encontrar ejemplos, ideas e inspiración:
+  + [Material adicional del libro: Minería de datos Modelos y Algoritmos](http://oer.uoc.edu/libroMD/)
+  + [Espacio de recursos UOC para ciencia de datos](http://datascience.recursos.uoc.edu/es/)
+  + [Buscador de código R](https://rseek.org/)  
+  + [Colección de cheatsheets en R](https://rstudio.com/resources/cheatsheets/)  
+  
+
+******
+
+******
